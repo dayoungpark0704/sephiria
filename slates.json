@@ -4,7 +4,7 @@
     "name": "건조",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_1.png",
+    "icon": "slate_01.png",
     "buffcoords": [
       {
         "x": 0,
@@ -25,7 +25,7 @@
     "name": "근사",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_2.png",
+    "icon": "slate_02.png",
     "buffcoords": [
       {
         "x": 0,
@@ -46,7 +46,7 @@
     "name": "기사도",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_3.png",
+    "icon": "slate_03.png",
     "buffcoords": [
       {
         "x": -1,
@@ -62,7 +62,7 @@
     "name": "도래",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_4.png",
+    "icon": "slate_04.png",
     "buffcoords": [
       {
         "x": -2,
@@ -93,7 +93,7 @@
     "name": "선의",
     "rarity": "Common",
     "condition": "최하단",
-    "icon": "slate_5.png",
+    "icon": "slate_05.png",
     "buffcoords": [
       {
         "x": -1,
@@ -114,7 +114,7 @@
     "name": "시선",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_6.png",
+    "icon": "slate_06.png",
     "buffcoords": [
       {
         "x": -1,
@@ -135,7 +135,7 @@
     "name": "악수",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_7.png",
+    "icon": "slate_07.png",
     "buffcoords": [
       {
         "x": -1,
@@ -156,7 +156,7 @@
     "name": "운명",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_8.png",
+    "icon": "slate_08.png",
     "buffcoords": [
       {
         "x": 0,
@@ -172,7 +172,7 @@
     "name": "재치",
     "rarity": "Common",
     "condition": "",
-    "icon": "slate_9.png",
+    "icon": "slate_09.png",
     "buffcoords": [
       {
         "x": -1,
