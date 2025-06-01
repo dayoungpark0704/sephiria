@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>세피리아 아이템 정리기</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- 키워드: 사전 클로트 -->
+    <div class="top-controls">
+      <strong>🎛 슬롯 설정:</strong>
+      <label><input type="checkbox" class="option" value="6" checked> 여우(+6)</label>
+      <label><input type="checkbox" class="option" value="3" checked> 생존10(+3)</label>
+      <label><input type="checkbox" class="option" value="-12"> 생존20(-12)</label>
+    </div>
+
+    <!-- 메인 복잡 영역 -->
+    <div class="main-body">
+      <!-- 좌측: 아이템 탭 + 목록 -->
+      <div class="left-pane">
+        <div class="item-tab">
+          <button id="tab-artifacts" class="active">🧿 아티팩트</button>
+          <button id="tab-slates">📜 석판</button>
+        </div>
+        <div class="item-list" id="item-list"></div>
+      </div>
+
+      <!-- 우측: 선택 + 정렬 + 공간 -->
+      <div class="right-pane">
+        <h4>✅ 선택된 아티팩트</h4>
+        <div id="selected-artifacts" class="selection-list"></div>
+
+        <h4>✅ 선택된 석판</h4>
+        <div id="selected-slates" class="selection-list"></div>
+
+        <h4>🔄 정렬 순서 (드래그)</h4>
+        <ul id="priority-list" class="priority-list"></ul>
+
+        <h4>🧱 슬롯 격자 미리보기 (6x6+3)</h4>
+        <div class="grid" id="main-grid"></div>
+        <div class="extra" id="extra-slots"></div>
+
+        <button onclick="autoArrange()">🔄 자동 배치</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 스크립트 버튼 -->
+  <script src="script.js"></script>
+</body>
+</html>
