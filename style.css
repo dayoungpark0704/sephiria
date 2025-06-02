@@ -135,7 +135,6 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(6, 60px);
-  grid-template-rows: repeat(6, 60px);
   gap: 5px;
   margin-bottom: 1rem;
 }
