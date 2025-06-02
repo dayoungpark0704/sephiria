@@ -11,16 +11,18 @@ body {
   gap: 1rem;
 }
 
-.top-controls {
-  padding: 10px;
-  border: 1px solid #444;
-  background-color: #1a1a1a;
-  display: flex; /* 체크박스 정렬 */
+/* top-controls가 left-pane 안으로 이동하면서 필요한 조정 */
+.top-controls { /* .left-pane .top-controls 로 구체화된 스타일을 여기로 올립니다. */
+  border: 1px solid #444; /* top-controls의 원래 테두리 */
+  background-color: #1a1a1a; /* top-controls의 원래 배경색 */
+  padding: 10px; /* top-controls의 원래 패딩 */
+  margin-bottom: 1rem; /* 슬롯 격자와의 간격 유지 */
+  display: flex; /* 내부 체크박스 정렬 */
   gap: 15px; /* 체크박스 간 간격 */
   align-items: center;
 }
 
-.top-controls label {
+.top-controls label { /* .top-controls 내 label 스타일 추가 */
   display: flex;
   align-items: center;
   gap: 5px;
@@ -33,16 +35,16 @@ body {
 }
 
 .left-pane {
-  flex: 1;
+  flex: 1; /* 왼쪽 패널이 차지할 공간 */
   border: 1px solid #444;
   padding: 10px;
   background-color: #181818;
-  display: flex; /* 내부 요소 정렬 */
+  display: flex;
   flex-direction: column;
 }
 
 .right-pane {
-  flex: 2;
+  flex: 2; /* 오른쪽 패널이 차지할 공간 */
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -59,11 +61,11 @@ body {
   background-color: #333;
   color: #fff;
   border: none;
-  padding: 8px 15px; /* 패딩 증가 */
+  padding: 8px 15px;
   cursor: pointer;
   margin-right: 5px;
-  border-radius: 4px; /* 모서리 둥글게 */
-  transition: background-color 0.2s; /* 호버 효과 */
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
 .item-tab button:hover {
@@ -84,7 +86,7 @@ body {
 }
 
 #item-search {
-  width: calc(100% - 20px); /* 패딩 고려 */
+  width: calc(100% - 20px);
   padding: 8px 10px;
   border: 1px solid #555;
   background-color: #2a2a2a;
@@ -100,7 +102,7 @@ body {
 }
 
 .tag-button {
-  background-color: #4CAF50; /* 태그 버튼 색상 */
+  background-color: #4CAF50;
   color: white;
   border: none;
   padding: 5px 10px;
@@ -115,7 +117,7 @@ body {
 }
 
 .tag-button.active {
-  background-color: #007bff; /* 선택된 태그 버튼 색상 */
+  background-color: #007bff;
 }
 
 
@@ -123,7 +125,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  max-height: 400px;
+  max-height: 400px; /* 초기 높이 설정, 나중에 flex-grow와 함께 작동 */
   overflow-y: auto;
   border: 1px solid #444;
   padding: 10px;
@@ -132,7 +134,7 @@ body {
 }
 
 .item {
-  width: 70px; /* 아이템 크기 증가 */
+  width: 70px;
   height: 80px;
   text-align: center;
   cursor: pointer;
@@ -142,33 +144,33 @@ body {
   justify-content: center;
   padding: 5px;
   box-sizing: border-box;
-  border: 1px solid transparent; /* 기본 테두리 없앰 */
+  border: 1px solid transparent;
   border-radius: 5px;
-  transition: all 0.1s ease-in-out; /* 부드러운 전환 효과 */
+  transition: all 0.1s ease-in-out;
 }
 
 .item:hover {
-  background-color: #2a2a2a; /* 호버 시 배경색 변경 */
-  border-color: #777; /* 호버 시 테두리 색상 변경 */
+  background-color: #2a2a2a;
+  border-color: #777;
 }
 
 .item img {
-  width: 50px; /* 이미지 크기 증가 */
+  width: 50px;
   height: 50px;
   object-fit: contain;
 }
 
 .item div {
-  font-size: 0.8em; /* 폰트 크기 조절 */
-  white-space: nowrap; /* 줄바꿈 방지 */
-  overflow: hidden; /* 넘치는 텍스트 숨김 */
-  text-overflow: ellipsis; /* ... 표시 */
-  max-width: 100%; /* 부모 너비에 맞춤 */
+  font-size: 0.8em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .item.selected {
-  outline: 2px solid #00bfff; /* 선택 시 파란색 테두리 */
-  background-color: #333; /* 선택 시 배경색 변경 */
+  outline: 2px solid #00bfff;
+  background-color: #333;
 }
 
 .selection-list {
@@ -178,50 +180,50 @@ body {
   border: 1px solid #444;
   padding: 10px;
   background-color: #1a1a1a;
-  max-height: 200px; /* 최대 높이 설정 */
-  overflow-y: auto; /* 내용 넘칠 시 스크롤 */
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .selection-list .item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px; /* 패딩 증가 */
+  padding: 8px;
   background-color: #222;
   border: 1px solid #555;
-  font-size: 14px; /* 폰트 크기 증가 */
-  position: relative; /* 삭제 버튼 위치 조정을 위해 */
-  width: auto; /* 아이템 너비 자동 */
-  height: auto; /* 아이템 높이 자동 */
+  font-size: 14px;
+  position: relative;
+  width: auto;
+  height: auto;
 }
 
 .selection-list .item img {
-  width: 40px; /* 이미지 크기 조절 */
+  width: 40px;
   height: 40px;
 }
 
 .selection-list .tags {
-  color: #999; /* 태그 색상 조절 */
-  font-size: 0.85em; /* 태그 폰트 크기 */
+  color: #999;
+  font-size: 0.85em;
 }
 
 .selection-list .controls {
   display: flex;
   align-items: center;
-  gap: 5px; /* 간격 조절 */
+  gap: 5px;
 }
 
 .selection-list .controls button {
-  background-color: #007bff; /* 버튼 색상 */
+  background-color: #007bff;
   color: white;
   border: none;
-  width: 25px; /* 버튼 크기 */
+  width: 25px;
   height: 25px;
   border-radius: 3px;
   font-size: 1.1em;
-  line-height: 1; /* 텍스트 수직 중앙 정렬 */
+  line-height: 1;
   padding: 0;
-  display: flex; /* flexbox를 이용한 중앙 정렬 */
+  display: flex;
   justify-content: center;
   align-items: center;
   transition: background-color 0.2s;
@@ -233,17 +235,16 @@ body {
 
 .selection-list .controls span {
   font-weight: bold;
-  min-width: 50px; /* 최소 너비 지정으로 정렬 유지 */
+  min-width: 50px;
   text-align: center;
 }
 
-/* 선택된 아이템 목록에서 삭제 버튼 */
 .selection-list .item .remove-btn {
   background-color: #dc3545;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 22px; /* 버튼 크기 키움 */
+  width: 22px;
   height: 22px;
   font-size: 0.9em;
   line-height: 1;
@@ -254,7 +255,7 @@ body {
   top: 5px;
   right: 5px;
   opacity: 0.8;
-  display: flex; /* flexbox를 이용한 중앙 정렬 */
+  display: flex;
   justify-content: center;
   align-items: center;
   transition: opacity 0.2s, background-color 0.2s;
@@ -270,12 +271,13 @@ body {
   flex-direction: row;
   gap: 10px;
   padding: 10px;
-  overflow-x: auto; /* 가로 스크롤 허용 */
+  overflow-x: auto;
   white-space: nowrap;
   background-color: #111;
   border: 1px solid #333;
-  min-height: 40px; /* 최소 높이 설정 */
-  align-items: center;
+  min-height: 40px;
+  align-items: flex-start; /* 아이템이 위에서부터 정렬되도록 */
+  flex-wrap: wrap; /* 아이템이 여러 줄로 표시되도록 */
 }
 
 .priority-list li {
@@ -300,7 +302,7 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(6, 80px); /* 슬롯 크기 증가 */
+  grid-template-columns: repeat(6, 80px);
   gap: 5px;
   margin-bottom: 1rem;
 }
@@ -308,7 +310,7 @@ body {
 .slot {
   background-color: #333;
   border: 1px solid #666;
-  width: 80px; /* 슬롯 크기 증가 */
+  width: 80px;
   height: 80px;
   display: flex;
   flex-direction: column;
@@ -316,7 +318,7 @@ body {
   align-items: center;
   font-size: 10px;
   text-align: center;
-  position: relative; /* 자식 요소 위치를 위해 */
+  position: relative;
   border-radius: 4px;
   transition: all 0.1s ease-in-out;
 }
@@ -327,9 +329,9 @@ body {
 }
 
 .slot.drag-over {
-  background-color: #555; /* 드롭 가능 시 배경색 */
-  border: 2px dashed #00bfff; /* 테두리 강조 */
-  box-shadow: 0 0 10px rgba(0, 191, 255, 0.5); /* 그림자 효과 */
+  background-color: #555;
+  border: 2px dashed #00bfff;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
 }
 
 .slot .name {
@@ -337,7 +339,6 @@ body {
   font-size: 0.8em;
 }
 
-/* 슬롯에 아이템이 배치되었을 때의 스타일 */
 .slot .item-in-slot {
   display: flex;
   flex-direction: column;
@@ -347,18 +348,18 @@ body {
   height: 100%;
   padding: 2px;
   box-sizing: border-box;
-  background-color: #444; /* 배치된 아이템 슬롯 배경색 */
+  background-color: #444;
   border-radius: 3px;
 }
 
 .slot .item-in-slot img {
-  max-width: 60px; /* 이미지 크기 조절 */
+  max-width: 60px;
   max-height: 60px;
   object-fit: contain;
 }
 
 .slot .item-in-slot .item-name {
-  font-size: 0.75em; /* 이름 폰트 크기 조절 */
+  font-size: 0.75em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -366,47 +367,32 @@ body {
   color: #eee;
 }
 
-/* 새로운 레이아웃에 맞춰 추가/조정 */
-
-/* top-controls가 left-pane 안으로 이동하면서 필요한 조정 */
-.left-pane .top-controls {
-  margin-bottom: 1rem; /* 슬롯 격자와의 간격 */
-  /* 필요하다면 여기에 추가적인 스타일 (예: 내부 여백) */
+.slot .item-in-slot .item-level {
+  font-size: 0.65em;
+  color: #ccc;
 }
 
-/* 자동 배치 버튼이 left-pane의 전체 너비를 차지하도록 */
-.left-pane #auto-arrange-btn {
-  width: 100%;
-  margin-top: 10px;
+button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  cursor: pointer;
+  margin-top: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s, transform 0.1s;
 }
 
-/* 오른쪽 패널의 높이를 늘려 선택 목록과 정렬 목록이 더 잘 보이도록 */
-.right-pane {
-  flex: 2; /* 기존 값 유지 */
-  /* max-height: calc(100vh - 80px); */ /* 뷰포트 높이에 맞춰 조절 (필요 시 주석 해제 후 높이 조정) */
-  /* overflow-y: auto; */ /* 내용이 넘칠 경우 스크롤 (필요 시 주석 해제) */
+button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
 }
 
-/* 아이템 목록과 선택된 목록이 스크롤될 수 있도록 높이 지정 */
-.item-list {
-  flex-grow: 1; /* 남은 공간을 채우도록 */
-  min-height: 150px; /* 최소 높이 지정 (내용이 적어도 최소 높이 유지) */
-  max-height: 300px; /* 최대 높이 지정 (이 이상이면 스크롤) */
+button:active {
+  transform: translateY(0);
 }
 
-.selection-list {
-  min-height: 100px;
-  max-height: 180px; /* 선택 목록 최대 높이 조절 */
-}
-
-.priority-list {
-  min-height: 40px;
-  max-height: 80px; /* 우선순위 목록 최대 높이 조절 */
-  align-items: flex-start; /* 아이템이 위에서부터 정렬되도록 */
-  flex-wrap: wrap; /* 아이템이 여러 줄로 표시되도록 */
-}
-
-/* 스크롤바가 필요하다면 (모든 스크롤 가능한 요소에 적용) */
+/* 스크롤바 스타일 */
 .item-list, .selection-list, .priority-list {
   scrollbar-width: thin; /* Firefox */
   scrollbar-color: #555 #333; /* Firefox */
@@ -431,29 +417,4 @@ body {
 .priority-list::-webkit-scrollbar-thumb {
   background-color: #555;
   border-radius: 4px;
-}
-
-.slot .item-in-slot .item-level {
-  font-size: 0.65em; /* 레벨 폰트 크기 조절 */
-  color: #ccc;
-}
-
-button {
-  background-color: #007bff; /* 버튼 색상 변경 */
-  color: #fff;
-  border: none;
-  padding: 8px 15px; /* 패딩 증가 */
-  cursor: pointer;
-  margin-top: 5px;
-  border-radius: 4px;
-  transition: background-color 0.2s, transform 0.1s;
-}
-
-button:hover {
-  background-color: #0056b3;
-  transform: translateY(-1px); /* 약간의 움직임 효과 */
-}
-
-button:active {
-  transform: translateY(0);
 }
