@@ -37,7 +37,8 @@ function createSlot(index) {
   // 드래그 앤 드롭 이벤트 리스너 추가
   slot.addEventListener('dragover', e => {
     e.preventDefault(); // 드롭 허용
-    const draggingItem = document.querySelector('.selection-list .item.dragging');
+    // .item.dragging (선택 목록에서 드래그) 또는 .item-in-slot.dragging (그리드 내에서 드래그)
+    const draggingItem = document.querySelector('.item.dragging, .item-in-slot.dragging');
     if (draggingItem && !slot.classList.contains('disabled')) { // 비활성화된 슬롯에는 드롭 불가
       slot.classList.add('drag-over');
     }
@@ -55,45 +56,136 @@ function createSlot(index) {
 
     const itemId = e.dataTransfer.getData('itemId');
     const isArtifactStr = e.dataTransfer.getData('isArtifact');
-    const isArtifact = isArtifactStr === 'true'; // 문자열을 boolean으로 변환
+    const isArtifact = isArtifactStr === 'true';
+    const sourceSlotIndex = e.dataTransfer.getData('sourceSlotIndex'); // 드래그 시작 슬롯 인덱스 (그리드 내부 이동 시)
 
     let draggedItem;
-    // selectedArtifacts와 selectedSlates에서 아이템을 찾습니다.
     if (isArtifact) {
       draggedItem = selectedArtifacts.find(item => item.id === itemId);
     } else {
       draggedItem = selectedSlates.find(item => item.id === itemId);
     }
 
-    if (draggedItem) {
-      // 기존에 아이템이 있던 슬롯을 비움 (만약 있다면)
-      const oldSlotIndex = currentGridItems.findIndex(item => item && item.id === draggedItem.id);
-      if (oldSlotIndex !== -1) {
+    if (!draggedItem) return; // 드래그된 아이템을 찾을 수 없으면 중단
+
+    const targetIndex = parseInt(slot.dataset.index);
+
+    // 그리드 내에서 아이템을 자기 자신 슬롯에 드롭하는 경우
+    if (sourceSlotIndex !== "" && parseInt(sourceSlotIndex) === targetIndex) {
+        // 버프 재계산을 위해 모든 슬롯을 다시 렌더링
+        const currentSlotsCount = calculateSlots();
+        for(let i = 0; i < currentSlotsCount; i++) {
+            if(currentGridItems[i]) {
+                const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+                if (slotElement) {
+                    renderItemInSlot(slotElement, currentGridItems[i]);
+                }
+            }
+        }
+        return;
+    }
+
+    // 기존에 드래그된 아이템이 있던 슬롯을 비움 (그리드 내부 이동 또는 외부에서 그리드로 이동 시)
+    const oldSlotIndex = currentGridItems.findIndex(item => item && item.id === draggedItem.id);
+    if (oldSlotIndex !== -1 && oldSlotIndex !== targetIndex) { // 타겟 슬롯과 다른 경우에만 비움
         currentGridItems[oldSlotIndex] = null;
         document.querySelector(`.slot[data-index="${oldSlotIndex}"]`).innerHTML = `<div class="name">빈 슬롯 ${oldSlotIndex + 1}</div>`;
-      }
+    }
+    
+    const itemAtTarget = currentGridItems[targetIndex]; // 타겟 슬롯에 이미 있던 아이템
 
-      // 새 슬롯에 아이템 배치 및 상태 업데이트
-      const targetIndex = parseInt(slot.dataset.index);
-      currentGridItems[targetIndex] = draggedItem;
-      renderItemInSlot(slot, draggedItem);
+    // 그리드 내에서 아이템 이동 처리 (교환 로직)
+    if (sourceSlotIndex !== "") { // sourceSlotIndex가 있으면 그리드 내 이동
+        const srcIndex = parseInt(sourceSlotIndex);
+
+        // 타겟 슬롯에 아이템이 있으면 원래 위치로 되돌리거나 교환
+        if (itemAtTarget && srcIndex !== targetIndex) { // 타겟에 아이템이 있고 자기 자신이 아니면
+            currentGridItems[srcIndex] = itemAtTarget; // 타겟 아이템을 원본 위치로
+            renderItemInSlot(document.querySelector(`.slot[data-index="${srcIndex}"]`), itemAtTarget);
+        } else if (!itemAtTarget && srcIndex !== targetIndex) { // 타겟이 비어있으면 원본만 비움
+            currentGridItems[srcIndex] = null;
+            document.querySelector(`.slot[data-index="${srcIndex}"]`).innerHTML = `<div class="name">빈 슬롯 ${srcIndex + 1}</div>`;
+        }
+    }
+
+    // 드래그된 아이템을 타겟 위치에 배치
+    currentGridItems[targetIndex] = draggedItem;
+    renderItemInSlot(slot, draggedItem);
+
+    // 모든 슬롯의 버프 및 condition을 재계산하고 UI를 업데이트
+    const currentSlotsCount = calculateSlots();
+    for(let i = 0; i < currentSlotsCount; i++) {
+        if(currentGridItems[i]) {
+            const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+            if (slotElement) {
+                renderItemInSlot(slotElement, currentGridItems[i]);
+            }
+        } else { // 빈 슬롯도 버프 영향을 받을 수 있으므로 빈 슬롯으로 다시 그림
+             const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+             if (slotElement) {
+                 slotElement.innerHTML = `<div class="name">빈 슬롯 ${i + 1}</div>`;
+             }
+        }
     }
   });
 
-  // 초기 빈 슬롯 텍스트
-  slot.innerHTML = `<div class="name">빈 슬롯 ${index + 1}</div>`;
+  // 초기 빈 슬롯 텍스트 (renderSlots에서 이미 처리됨)
+  // slot.innerHTML = `<div class="name">빈 슬롯 ${index + 1}</div>`;
   return slot;
 }
 
+// renderItemInSlot 함수 수정: 슬롯 내 아이템을 드래그 가능하게 설정
 function renderItemInSlot(slotElement, item) {
+    const slotIndex = parseInt(slotElement.dataset.index);
+    const slotBuffs = calculateSlotBuffs(); // 슬롯 버프 계산
+    const additionalUpgrade = slotBuffs[slotIndex] || 0; // 해당 슬롯의 추가 강화 수치
+
+    const displayLevel = (item.level || 0) + additionalUpgrade; // 표시할 최종 레벨
+    let levelColorClass = '';
+    // MaxUpgrade가 0보다 클 때만 초록색 적용 (아이템에 강화 레벨이 없으면 의미 없음)
+    if (item.maxUpgrade > 0 && displayLevel >= item.maxUpgrade) {
+        levelColorClass = 'level-maxed';
+    }
+
+    // condition 충족 여부 확인
+    let isConditionMet = false;
+    if (item.condition && item.condition.length > 0) { // item.condition이 존재하고 비어있지 않은 경우
+        const tempGridForCheck = [...currentGridItems]; // 현재 그리드 상태 복사
+        tempGridForCheck[slotIndex] = item; // 해당 슬롯에 임시로 아이템 배치 (검사용)
+        isConditionMet = isSlotAvailable(slotIndex, item.condition[0], tempGridForCheck); // condition은 배열이므로 첫 번째 요소를 사용
+    } else {
+        isConditionMet = true; // condition이 없으면 항상 충족
+    }
+    const conditionClass = isConditionMet ? 'condition-met' : 'condition-unmet';
+
     slotElement.innerHTML = `
-        <div class="item-in-slot" data-item-id="${item.id}">
+        <div class="item-in-slot ${conditionClass}" data-item-id="${item.id}" data-is-artifact="${item.id.startsWith('aritifact_')}" draggable="true">
             <img src="images/${item.icon}" alt="${item.name}" />
-            <div class="item-name">${item.name}</div>
-            <div class="item-level">★${item.level || 0}/${item.maxUpgrade}</div>
+            <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-level ${levelColorClass}">★${displayLevel}/${item.maxUpgrade}</div>
+            </div>
+            ${additionalUpgrade > 0 ? `<div class="slot-buff-indicator">+${additionalUpgrade}</div>` : ''}
         </div>
     `;
+
+    // !!! 새롭게 추가할 부분: 슬롯 내 아이템의 드래그 이벤트 리스너 !!!
+    const itemInSlotDiv = slotElement.querySelector('.item-in-slot');
+    if (itemInSlotDiv) {
+        itemInSlotDiv.addEventListener('dragstart', e => {
+            // 드래그되는 아이템의 정보와 '어디에서' 드래그되었는지에 대한 정보 추가
+            e.dataTransfer.setData('itemId', item.id);
+            e.dataTransfer.setData('isArtifact', item.id.startsWith('aritifact_'));
+            e.dataTransfer.setData('sourceSlotIndex', slotIndex); // 드래그 시작 슬롯 인덱스 추가
+            e.currentTarget.classList.add('dragging');
+        });
+
+        itemInSlotDiv.addEventListener('dragend', e => {
+            e.currentTarget.classList.remove('dragging');
+        });
+    }
 }
+
 
 function renderSlots(count) {
   grid.innerHTML = '';
@@ -166,7 +258,9 @@ function toggleItemSelection(item, selectedList, container, isArtifact) {
     selectedList.splice(foundIndex, 1);
   } else {
     // 선택되지 않은 아이템이면 추가
-    selectedList.push({ ...item, level: 0 }); // level 초기값 설정
+    // maxUpgrade까지 강화하는 시스템을 고려하여, 여기에 level = item.maxUpgrade를 넣을 수도 있지만,
+    // autoArrange에서 일괄 처리하므로 여기서는 초기값 0을 유지합니다.
+    selectedList.push({ ...item, level: 0 });
   }
   renderSelectedItems(selectedList, container, isArtifact);
 }
@@ -179,11 +273,13 @@ function renderSelectedItems(list, container, isArtifact) {
     div.draggable = true; // 선택된 아이템을 드래그 가능하게 설정
     div.dataset.itemId = item.id;
     div.dataset.isArtifact = isArtifact; // 아티팩트인지 석판인지 구분
+    div.dataset.sourceSlotIndex = ""; // 이 아이템은 슬롯 밖에서 드래그되므로 빈 값
 
     // 드래그 시작 이벤트
     div.addEventListener('dragstart', e => {
       e.dataTransfer.setData('itemId', item.id);
       e.dataTransfer.setData('isArtifact', isArtifact);
+      e.dataTransfer.setData('sourceSlotIndex', ""); // 슬롯 밖에서 왔음을 알림
       e.currentTarget.classList.add('dragging');
     });
 
@@ -219,16 +315,25 @@ function adjustLevel(id, isArtifact, delta) {
   item.level = Math.max(0, Math.min(item.maxUpgrade, (item.level || 0) + delta));
   renderSelectedItems(list, isArtifact ? selectedArtifactsEl : selectedSlatesEl, isArtifact);
 
-  // 슬롯에 배치된 아이템의 레벨이 변경될 경우 그리드를 다시 렌더링합니다.
-  const slotElementInGrid = document.querySelector(`.slot .item-in-slot[data-item-id="${id}"]`);
-  if (slotElementInGrid) { // 슬롯에 이미 배치된 아이템인 경우
-      renderItemInSlot(slotElementInGrid.closest('.slot'), item);
+  // 레벨 변경 후 모든 슬롯의 버프 및 condition을 재계산하고 UI를 업데이트
+  const currentSlotsCount = calculateSlots();
+  for(let i = 0; i < currentSlotsCount; i++) {
+      if(currentGridItems[i]) {
+          const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+          if (slotElement) {
+              renderItemInSlot(slotElement, currentGridItems[i]);
+          }
+      } else { // 빈 슬롯도 버프 영향이 사라질 수 있으므로 다시 그림
+           const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+           if (slotElement) {
+               slotElement.innerHTML = `<div class="name">빈 슬롯 ${i + 1}</div>`;
+           }
+      }
   }
 }
 
 function removeItemFromSelection(id, isArtifact) {
     const list = isArtifact ? selectedArtifacts : selectedSlates;
-    // 선택 목록에서 제거
     const updatedList = list.filter(item => item.id !== id);
     if (isArtifact) {
         selectedArtifacts = updatedList;
@@ -238,16 +343,30 @@ function removeItemFromSelection(id, isArtifact) {
         renderSelectedItems(selectedSlates, selectedSlatesEl, false);
     }
 
-    // 그리드에서 제거 (만약 배치되어 있었다면)
     const slotIndexToRemove = currentGridItems.findIndex(item => item && item.id === id);
     if (slotIndexToRemove !== -1) {
         currentGridItems[slotIndexToRemove] = null;
         document.querySelector(`.slot[data-index="${slotIndexToRemove}"]`).innerHTML = `<div class="name">빈 슬롯 ${slotIndexToRemove + 1}</div>`;
     }
 
-    // 아이템 목록에서 'selected' 클래스 제거를 위해 현재 탭 다시 렌더링
-    applyFilterAndRenderList(); // 필터링 상태를 유지하며 다시 렌더링
+    applyFilterAndRenderList();
     updatePriorityList();
+
+    // 아이템 제거 후에도 모든 슬롯의 버프 및 condition을 재계산하고 UI를 업데이트
+    const currentSlotsCount = calculateSlots();
+    for(let i = 0; i < currentSlotsCount; i++) {
+        if(currentGridItems[i]) {
+            const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+            if (slotElement) {
+                renderItemInSlot(slotElement, currentGridItems[i]);
+            }
+        } else { // 빈 슬롯도 버프 영향이 사라질 수 있으므로 다시 그림
+            const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+            if (slotElement) {
+                slotElement.innerHTML = `<div class="name">빈 슬롯 ${i + 1}</div>`;
+            }
+        }
+    }
 }
 
 
@@ -354,7 +473,7 @@ function applyFilterAndRenderList() {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
             // slates.json에 tags 필드가 없으므로, 태그 필터는 아티팩트 탭에서만 유효
             // 여기서는 항상 true로 처리 (혹은 태그 필터 버튼을 숨기거나 비활성화)
-            const tagMatch = true; //
+            const tagMatch = true;
             return nameMatch && tagMatch;
         });
         renderItemList(filteredItems, false);
@@ -366,6 +485,13 @@ function applyFilterAndRenderList() {
 // 배치 알고리즘 (Condition 고려)
 // ==========================
 
+/**
+ * 그리드의 특정 슬롯이 아이템의 조건을 만족하는지 확인합니다.
+ * @param {number} slotIndex - 확인할 슬롯의 인덱스.
+ * @param {string} condition - 아이템의 조건 문자열.
+ * @param {Array} currentGrid - 현재 그리드 상태를 나타내는 배열.
+ * @returns {boolean} 조건 충족 여부.
+ */
 function isSlotAvailable(slotIndex, condition, currentGrid) {
     const row = Math.floor(slotIndex / 6); // 그리드 열이 6개 (0부터 시작)
     const col = slotIndex % 6; // 그리드 행 (0부터 시작)
@@ -376,7 +502,6 @@ function isSlotAvailable(slotIndex, condition, currentGrid) {
         case "최상단": // 그리드의 첫 번째 행
             return row === 0;
         case "최하단": // 그리드의 마지막 행
-            // 현재 활성화된 슬롯의 마지막 행이 최하단이 됨
             return row === totalRows - 1;
         case "가장자리": // 그리드의 가장 외각 슬롯 (첫행, 마지막행, 첫열, 마지막열)
             return row === 0 || row === totalRows - 1 || col === 0 || col === totalCols - 1;
@@ -401,7 +526,6 @@ function isSlotAvailable(slotIndex, condition, currentGrid) {
             return true;
     }
 }
-// script.js 에 추가 (적절한 위치에, 예를 들어 autoArrange 위에)
 
 /**
  * 그리드의 각 슬롯에 적용되는 추가 강화 수치를 계산합니다.
@@ -418,27 +542,33 @@ function calculateSlotBuffs() {
             const baseCol = slotIndex % 6;
 
             item.buffcoords.forEach(buff => {
-                const targetRow = baseRow + buff.y;
-                const targetCol = baseCol + buff.x;
+                const targetRow = baseRow + (buff.y || 0); // y가 없을 경우 0으로 처리
+                const targetCol = baseCol + (buff.x || 0); // x가 없을 경우 0으로 처리
                 const targetIndex = targetRow * 6 + targetCol;
 
                 // 유효한 슬롯 인덱스인지 확인
-                if (targetIndex >= 0 && targetIndex < maxSlots &&
-                    targetRow >= 0 && targetRow < Math.ceil(maxSlots / 6) && // 행 범위 확인
+                // maxSlots 대신 calculateSlots()를 사용하여 현재 활성화된 슬롯 수로 제한
+                const currentActiveSlotsCount = calculateSlots();
+                if (targetIndex >= 0 && targetIndex < currentActiveSlotsCount &&
+                    targetRow >= 0 && targetRow < Math.ceil(currentActiveSlotsCount / 6) && // 행 범위 확인
                     targetCol >= 0 && targetCol < 6) { // 열 범위 확인
 
-                    if (buff.v === "limitUnlock") {
-                        // "limitUnlock"은 강화 수치 자체가 아니라, 최대 강화 레벨 제한 해제와 관련될 수 있습니다.
-                        // 이 로직은 현재 단순히 숫자로 합산되도록 가정합니다.
-                        // 만약 실제 게임에서 limitUnlock이 다른 의미라면, 이 부분을 수정해야 합니다.
-                        // 여기서는 일단 +1로 처리하겠습니다.
-                        slotBuffs[targetIndex] += 1;
-                    } else if (!isNaN(parseInt(buff.v))) { // 숫자 값인 경우
-                        slotBuffs[targetIndex] += parseInt(buff.v);
+                    let buffValue = 0;
+                    // buff.v 필드 (기존 형식: "v": "+1" 또는 "v": "limitUnlock") 처리
+                    if (buff.v !== undefined) {
+                        if (buff.v === "limitUnlock") {
+                            buffValue = 1; // "limitUnlock"은 1로 처리
+                        } else if (!isNaN(parseInt(buff.v))) { // 숫자 값인 경우
+                            buffValue = parseInt(buff.v);
+                        }
                     }
-                    // else {
-                    //     // 다른 타입의 버프 (예: "downside", "edge")는 현재 강화 수치에 영향 주지 않으므로 무시
-                    // }
+                    // buff.value 필드 (새로운 형식: "value": 1) 처리
+                    else if (buff.value !== undefined && !isNaN(parseInt(buff.value))) {
+                        buffValue = parseInt(buff.value);
+                    }
+                    // buff.type 필드 (예: "downside", "edge")는 현재 강화 수치에 영향 주지 않으므로 무시
+
+                    slotBuffs[targetIndex] += buffValue;
                 }
             });
         }
@@ -446,145 +576,6 @@ function calculateSlotBuffs() {
     return slotBuffs;
 }
 
-// script.js 내 renderItemInSlot 함수 수정 (upgrade 수치 표현 및 색상 변경)
-function renderItemInSlot(slotElement, item) {
-    const slotIndex = parseInt(slotElement.dataset.index);
-    const slotBuffs = calculateSlotBuffs(); // 슬롯별 버프 계산
-    const additionalUpgrade = slotBuffs[slotIndex] || 0; // 해당 슬롯의 추가 강화 수치
-
-    const displayLevel = (item.level || 0) + additionalUpgrade; // 표시할 최종 레벨
-    let levelColorClass = '';
-    if (displayLevel >= item.maxUpgrade && item.maxUpgrade > 0) { // maxUpgrade 이상이고 maxUpgrade가 0보다 클 때만 초록색
-        levelColorClass = 'level-maxed';
-    }
-
-    // condition 충족 여부 (이전 단계에서 추가된 로직)
-    let isConditionMet = false;
-    if (item.condition && item.condition.length > 0) {
-        const tempGridForCheck = [...currentGridItems];
-        tempGridForCheck[slotIndex] = item;
-        isConditionMet = isSlotAvailable(slotIndex, item.condition, tempGridForCheck);
-    } else {
-        isConditionMet = true;
-    }
-    const conditionClass = isConditionMet ? 'condition-met' : 'condition-unmet';
-
-    slotElement.innerHTML = `
-        <div class="item-in-slot ${conditionClass}" data-item-id="${item.id}">
-            <img src="images/${item.icon}" alt="${item.name}" />
-            <div class="item-info">
-                <div class="item-name">${item.name}</div>
-                <div class="item-level ${levelColorClass}">★${displayLevel}/${item.maxUpgrade}</div>
-            </div>
-            ${additionalUpgrade > 0 ? `<div class="slot-buff-indicator">+${additionalUpgrade}</div>` : ''}
-        </div>
-    `;
-}
-
-// script.js 내 autoArrange 함수 수정 (배치 후 슬롯 버프 및 UI 업데이트)
-function autoArrange() {
-  // ... (기존 코드)
-
-  // 1. 선택된 아티팩트의 레벨을 maxUpgrade까지 자동으로 올림
-  selectedArtifacts.forEach(item => {
-    item.level = item.maxUpgrade;
-    // UI 업데이트 (선택된 아이템 목록)
-    renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
-  });
-
-  // ... (기존 코드)
-
-  // 배치 완료 후 모든 슬롯의 UI를 다시 렌더링하여 버프 및 Condition 표시를 정확히 반영
-  const currentSlotsCount = calculateSlots();
-  for(let i = 0; i < currentSlotsCount; i++) {
-      if(currentGridItems[i]) { // 슬롯에 아이템이 있으면 다시 그리기
-          const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
-          if (slotElement) {
-              renderItemInSlot(slotElement, currentGridItems[i]);
-          }
-      }
-  }
-  // 빈 슬롯은 그대로 둠
-}
-
-// script.js 내 toggleItemSelection 함수 수정 (아이템 레벨 초기화 시 maxUpgrade 고려)
-function toggleItemSelection(item, selectedList, container, isArtifact) {
-  const foundIndex = selectedList.findIndex(i => i.id === item.id);
-  if (foundIndex !== -1) {
-    selectedList.splice(foundIndex, 1);
-  } else {
-    // 선택되지 않은 아이템이면 추가
-    // maxUpgrade까지 강화하는 시스템을 고려하여, 여기에 level = item.maxUpgrade를 넣을 수도 있지만,
-    // autoArrange에서 일괄 처리하므로 여기서는 초기값 0을 유지합니다.
-    selectedList.push({ ...item, level: 0 });
-  }
-  renderSelectedItems(selectedList, container, isArtifact);
-}
-
-
-// script.js 내 adjustLevel 함수 수정 (레벨 조정 후 슬롯 버프 재계산 및 UI 업데이트)
-function adjustLevel(id, isArtifact, delta) {
-  const list = isArtifact ? selectedArtifacts : selectedSlates;
-  const item = list.find(i => i.id === id);
-  if (!item) return;
-  item.level = Math.max(0, Math.min(item.maxUpgrade, (item.level || 0) + delta));
-  renderSelectedItems(list, isArtifact ? selectedArtifactsEl : selectedSlatesEl, isArtifact);
-
-  // 슬롯에 배치된 아이템의 레벨이 변경될 경우 그리드를 다시 렌더링합니다.
-  const slotElementInGrid = document.querySelector(`.slot .item-in-slot[data-item-id="${id}"]`);
-  if (slotElementInGrid) {
-      renderItemInSlot(slotElementInGrid.closest('.slot'), item);
-  }
-  // 주변 슬롯도 영향 받을 수 있으므로 전체 슬롯을 다시 업데이트 (복잡하지만 정확함)
-  // simplify: autoArrange() 호출 대신, 모든 채워진 슬롯을 다시 renderItemInSlot 하는 방식
-  const currentSlotsCount = calculateSlots();
-  for(let i = 0; i < currentSlotsCount; i++) {
-      if(currentGridItems[i]) {
-          const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
-          if (slotElement) {
-              renderItemInSlot(slotElement, currentGridItems[i]);
-          }
-      }
-  }
-}
-
-// script.js 내 removeItemFromSelection 함수 수정 (제거 후 슬롯 버프 재계산 및 UI 업데이트)
-function removeItemFromSelection(id, isArtifact) {
-    const list = isArtifact ? selectedArtifacts : selectedSlates;
-    const updatedList = list.filter(item => item.id !== id);
-    if (isArtifact) {
-        selectedArtifacts = updatedList;
-        renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
-    } else {
-        selectedSlates = updatedList;
-        renderSelectedItems(selectedSlates, selectedSlatesEl, false);
-    }
-
-    const slotIndexToRemove = currentGridItems.findIndex(item => item && item.id === id);
-    if (slotIndexToRemove !== -1) {
-        currentGridItems[slotIndexToRemove] = null;
-        document.querySelector(`.slot[data-index="${slotIndexToRemove}"]`).innerHTML = `<div class="name">빈 슬롯 ${slotIndexToRemove + 1}</div>`;
-    }
-
-    applyFilterAndRenderList();
-    updatePriorityList();
-
-    // 아이템 제거 후에도 주변 슬롯의 버프가 변할 수 있으므로, 전체 슬롯 재렌더링
-    const currentSlotsCount = calculateSlots();
-    for(let i = 0; i < currentSlotsCount; i++) {
-        if(currentGridItems[i]) {
-            const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
-            if (slotElement) {
-                renderItemInSlot(slotElement, currentGridItems[i]);
-            }
-        } else { // 빈 슬롯도 다시 그릴 필요가 있을 수 있음 (버프 표시 제거 등)
-            const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
-            if (slotElement) {
-                slotElement.innerHTML = `<div class="name">빈 슬롯 ${i + 1}</div>`;
-            }
-        }
-    }
-}
 
 function autoArrange() {
   const currentSlotsCount = calculateSlots();
@@ -599,11 +590,18 @@ function autoArrange() {
   currentGridItems.fill(null); // 그리드 상태 배열도 완전히 비움
 
   // 슬롯 수에 따라 disabled 클래스 다시 적용
-  for (let i = 0; i < maxSlots; i++) {
+  for (let i = 0; i < maxSlots; i++) { // maxSlots까지 순회하여 disabled 처리
       if (i >= currentSlotsCount) {
           allSlotsElements[i].classList.add('disabled');
       }
   }
+
+  // 1. 선택된 아티팩트의 레벨을 maxUpgrade까지 자동으로 올림
+  selectedArtifacts.forEach(item => {
+    item.level = item.maxUpgrade;
+    // UI 업데이트 (선택된 아이템 목록)
+    renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
+  });
 
   // 선택된 아티팩트와 석판을 우선순위에 따라 정렬
   // selectedArtifacts는 우선순위 리스트에서 드래그 순서에 따라 이미 정렬되어 있습니다.
@@ -622,11 +620,14 @@ function autoArrange() {
     // 아이템의 condition을 고려하여 슬롯 탐색
     for (let i = 0; i < currentSlotsCount; i++) {
         if (currentGridItems[i] === null) { // 슬롯이 비어있는 경우
-            if (isSlotAvailable(i, item.condition, currentGridItems)) {
+            // isSlotAvailable의 condition은 배열이 아닌 문자열 하나이므로 item.condition[0] 사용
+            const conditionToCheck = item.condition && item.condition.length > 0 ? item.condition[0] : '';
+
+            if (isSlotAvailable(i, conditionToCheck, currentGridItems)) {
                 const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
                 if (slotElement) {
-                    renderItemInSlot(slotElement, item);
-                    currentGridItems[i] = item;
+                    currentGridItems[i] = item; // 임시 배치
+                    renderItemInSlot(slotElement, item); // 배치된 모습 렌더링
                     placed = true;
                     placedCount++;
                     break; // 아이템을 배치했으므로 다음 아이템으로
@@ -705,19 +706,30 @@ async function loadData() {
     if (item.maxUpgrade === undefined) {
         item.maxUpgrade = 0;
     }
+    // condition 필드가 배열이 아닌 경우 배열로 변환 (예: "최상단" -> ["최상단"])
+    if (typeof item.condition === 'string' && item.condition !== '') {
+        item.condition = [item.condition];
+    } else if (!Array.isArray(item.condition)) {
+        item.condition = [];
+    }
 
     // 모든 아티팩트 태그 수집
     item.tags.forEach(tag => allTags.add(tag));
   });
 
-  // slates 데이터 처리: tags, upgrade, maxUpgrade 필드가 없으므로 특별한 처리 없음
-  // 만약 slates.json에 나중에 해당 필드가 추가된다면 여기에 로직 추가
+  // slates 데이터 처리: tags, upgrade, maxUpgrade, condition 필드 처리
   slates.forEach(item => {
     // tags 필드가 slates.json에 없으므로, 빈 배열로 강제 초기화
     item.tags = [];
     // upgrade, maxUpgrade 필드가 slates.json에 없으므로, 0으로 초기화
     item.upgrade = 0;
     item.maxUpgrade = 0;
+    // condition 필드도 artifacts와 유사하게 처리
+    if (typeof item.condition === 'string' && item.condition !== '') {
+        item.condition = [item.condition];
+    } else if (!Array.isArray(item.condition)) {
+        item.condition = [];
+    }
   });
 
 
