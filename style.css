@@ -418,3 +418,47 @@ button:active {
   background-color: #555;
   border-radius: 4px;
 }
+/* style.css 에 추가 */
+
+/* 슬롯 내부 아이템 정보 레이아웃 조정 */
+.slot .item-in-slot {
+    position: relative; /* 추가 강화 수치 표시를 위해 */
+    /* 기존 스타일 유지 (display: flex, flex-direction: column 등) */
+}
+
+.slot .item-in-slot .item-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1; /* 이름과 레벨이 공간을 차지하도록 */
+    width: 100%; /* 부모 너비에 맞춤 */
+}
+
+.slot .item-in-slot .item-name {
+    /* 기존 스타일 유지 */
+    margin-bottom: 2px; /* 레벨과의 간격 */
+}
+
+.slot .item-in-slot .item-level {
+    /* 기존 스타일 유지 */
+    font-weight: bold; /* 레벨 강조 */
+}
+
+.slot .item-in-slot .item-level.level-maxed {
+    color: #00ff00; /* MaxUpgrade 이상일 때 초록색 */
+}
+
+/* 슬롯 오른쪽 위에 추가 강화 수치 표시 */
+.slot-buff-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: #007bff; /* 파란색 배경 */
+  color: white;
+  font-size: 0.6em;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: bold;
+  z-index: 10; /* 다른 요소 위에 표시 */
+}
