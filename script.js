@@ -23,7 +23,7 @@ let selectedSlates = [];
 let currentGridItems = new Array(maxSlots).fill(null); // 그리드 슬롯의 현재 상태를 저장하는 배열
 
 let currentActiveTab = 'artifacts'; // 현재 활성화된 탭 ('artifacts' 또는 'slates')
-let allTags = new Set(); // 모든 아이템의 태그를 저장할 Set
+let allTags = new Set(); // 모든 아티팩트의 태그를 저장할 Set (slates에는 tags가 없으므로 아티팩트만)
 
 // ==========================
 // 슬롯 관련 함수
@@ -58,13 +58,11 @@ function createSlot(index) {
     const isArtifact = isArtifactStr === 'true'; // 문자열을 boolean으로 변환
 
     let draggedItem;
-    let sourceList;
+    // selectedArtifacts와 selectedSlates에서 아이템을 찾습니다.
     if (isArtifact) {
       draggedItem = selectedArtifacts.find(item => item.id === itemId);
-      sourceList = selectedArtifacts;
     } else {
       draggedItem = selectedSlates.find(item => item.id === itemId);
-      sourceList = selectedSlates;
     }
 
     if (draggedItem) {
@@ -89,7 +87,8 @@ function createSlot(index) {
 
 function renderItemInSlot(slotElement, item) {
     slotElement.innerHTML = `
-        <div class="item-in-slot" data-item-id="${item.id}"> <img src="images/${item.icon}" alt="${item.name}" />
+        <div class="item-in-slot" data-item-id="${item.id}">
+            <img src="images/${item.icon}" alt="${item.name}" />
             <div class="item-name">${item.name}</div>
             <div class="item-level">★${item.level || 0}/${item.maxUpgrade}</div>
         </div>
@@ -101,7 +100,7 @@ function renderSlots(count) {
   // currentGridItems 초기화 (새로운 슬롯 수에 맞춰)
   // 기존에 배치된 아이템은 유지되어야 하므로 완전히 비우지 않고, disabled 처리만
   const previousGridItems = [...currentGridItems]; // 현재 배치 상태 저장
-  currentGridItems = new Array(maxSlots).fill(null); // 새 배열 생성
+  currentGridItems = new Array(maxSlots).fill(null); // 새 배열 생성 (초기 null로 채움)
 
   for (let i = 0; i < maxSlots; i++) {
     const slot = createSlot(i);
@@ -130,7 +129,7 @@ function calculateSlots() {
 // 아이템 목록 및 선택 관련 함수
 // ==========================
 
-function renderItemList(itemsToRender, isArtifact = true) { // itemsToRender로 이름 변경
+function renderItemList(itemsToRender, isArtifact = true) {
   itemList.innerHTML = '';
   const currentSelectedList = isArtifact ? selectedArtifacts : selectedSlates;
 
@@ -191,12 +190,10 @@ function renderSelectedItems(list, container, isArtifact) {
     // 드래그 종료 이벤트
     div.addEventListener('dragend', e => {
       e.currentTarget.classList.remove('dragging');
-      // 드래그 드롭 후 그리드 상태를 다시 렌더링하여 비어있는 슬롯을 업데이트
-      // (이 부분은 슬롯 드롭 이벤트에서 처리되므로 중복될 수 있음. 필요 시 제거)
-      // renderSlots(calculateSlots()); // 이전에 있던 이 부분은 필요 없을 수 있음.
     });
 
-    const tags = item.tags ? (Array.isArray(item.tags) ? item.tags.map(tag => `#${tag}`).join(' ') : `#${item.tags}`) : '';
+    // slates.json에는 tags 필드가 없으므로 isArtifact일 경우에만 tags를 표시
+    const tags = (isArtifact && item.tags) ? (Array.isArray(item.tags) ? item.tags.map(tag => `#${tag}`).join(' ') : `#${item.tags}`) : '';
 
     div.innerHTML = `
       <img src="images/${item.icon}" />
@@ -276,7 +273,7 @@ function updatePriorityList() {
       const newOrder = [...priorityList.querySelectorAll('li')].map(li => li.dataset.id);
       selectedArtifacts.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
       // 순서가 변경되었으므로 자동 배치 다시 실행
-      // autoArrange(); // 알고리즘 구현 후에 주석 해제
+      // autoArrange(); // 알고리즘 구현 후에 주석 해제 (원치 않으면 그대로 주석)
     });
     li.addEventListener('dragover', e => {
       e.preventDefault();
@@ -347,6 +344,7 @@ function applyFilterAndRenderList() {
     if (currentActiveTab === 'artifacts') {
         filteredItems = artifacts.filter(item => {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
+            // item.tags는 이제 항상 배열이거나 빈 배열이므로 안전하게 .some() 사용
             const tagMatch = activeTags.size === 0 || item.tags.some(tag => activeTags.has(tag));
             return nameMatch && tagMatch;
         });
@@ -354,9 +352,9 @@ function applyFilterAndRenderList() {
     } else { // currentActiveTab === 'slates'
         filteredItems = slates.filter(item => {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
-            // 석판에는 tags 필드가 현재 artifacts.json처럼 명시적으로 있지 않으므로
-            // slates.json에 tags가 추가되면 이 부분도 활성화
-            const tagMatch = activeTags.size === 0 || item.tags.some(tag => activeTags.has(tag));
+            // slates.json에 tags 필드가 없으므로, 태그 필터는 아티팩트 탭에서만 유효
+            // 여기서는 항상 true로 처리 (혹은 태그 필터 버튼을 숨기거나 비활성화)
+            const tagMatch = true;
             return nameMatch && tagMatch;
         });
         renderItemList(filteredItems, false);
@@ -365,19 +363,20 @@ function applyFilterAndRenderList() {
 
 
 // ==========================
-// 배치 알고리즘 (Condition 고려) - UI/UX 개선 후 이 부분에 구현할 예정
+// 배치 알고리즘 (Condition 고려)
 // ==========================
 
 function isSlotAvailable(slotIndex, condition, currentGrid) {
-    const row = Math.floor(slotIndex / 6); // 그리드 열이 6개
-    const col = slotIndex % 6;
+    const row = Math.floor(slotIndex / 6); // 그리드 열이 6개 (0부터 시작)
+    const col = slotIndex % 6; // 그리드 행 (0부터 시작)
     const totalRows = Math.ceil(calculateSlots() / 6); // 현재 활성화된 슬롯 수에 기반한 전체 행 수
-    const totalCols = 6;
+    const totalCols = 6; // 그리드 열 고정
 
     switch (condition) {
         case "최상단": // 그리드의 첫 번째 행
             return row === 0;
         case "최하단": // 그리드의 마지막 행
+            // 현재 활성화된 슬롯의 마지막 행이 최하단이 됨
             return row === totalRows - 1;
         case "가장자리": // 그리드의 가장 외각 슬롯 (첫행, 마지막행, 첫열, 마지막열)
             return row === 0 || row === totalRows - 1 || col === 0 || col === totalCols - 1;
@@ -388,14 +387,14 @@ function isSlotAvailable(slotIndex, condition, currentGrid) {
             const leftSlotIndex = slotIndex - 1;
             const rightSlotIndex = slotIndex + 1;
 
-            // 같은 행에 있고, 좌우 슬롯이 그리드 범위 내에 있는지 확인
-            const isSameRowLeft = (col > 0);
-            const isSameRowRight = (col < totalCols - 1);
+            // 좌우 슬롯이 그리드 범위 내에 있는지 확인
+            const isLeftInBounds = (col > 0);
+            const isRightInBounds = (col < totalCols - 1);
 
             // 좌우 슬롯이 비어있는지 확인
             // 그리드 범위를 벗어나면 빈 것으로 간주 (즉, 벽 옆이면 공백으로 취급)
-            const isLeftEmpty = !isSameRowLeft || currentGrid[leftSlotIndex] === null;
-            const isRightEmpty = !isSameRowRight || currentGrid[rightSlotIndex] === null;
+            const isLeftEmpty = !isLeftInBounds || currentGrid[leftSlotIndex] === null;
+            const isRightEmpty = !isRightInBounds || currentGrid[rightSlotIndex] === null;
 
             return isLeftEmpty && isRightEmpty;
         default: // 조건이 없거나 알 수 없는 조건은 항상 가능
@@ -406,22 +405,28 @@ function isSlotAvailable(slotIndex, condition, currentGrid) {
 
 function autoArrange() {
   const currentSlotsCount = calculateSlots();
-  const availableSlots = [...document.querySelectorAll('.slot')].filter((slot, index) => index < currentSlotsCount);
+  const allSlotsElements = [...document.querySelectorAll('.slot')]; // 모든 슬롯 요소 가져오기
 
   // 모든 슬롯을 일단 비움
-  availableSlots.forEach(slot => {
+  allSlotsElements.forEach(slot => {
     slot.innerHTML = `<div class="name">빈 슬롯 ${parseInt(slot.dataset.index) + 1}</div>`;
+    // disabled 클래스도 초기화 (슬롯 수가 변경될 때 renderSlots에서 다시 적용)
+    slot.classList.remove('disabled');
   });
   currentGridItems.fill(null); // 그리드 상태 배열도 완전히 비움
 
-  // 선택된 아티팩트와 석판을 우선순위에 따라 정렬 (현재 아티팩트만 우선순위 리스트에서 정렬 가능)
-  const allPrioritizedItems = [...selectedArtifacts].sort((a, b) => {
-    // 우선순위 리스트의 순서를 따르므로, 이 부분은 실제 드래그 순서에 따라 정렬됨
-    // (updatePriorityList에서 selectedArtifacts 배열 자체가 정렬됨)
-    return 0;
-  });
+  // 슬롯 수에 따라 disabled 클래스 다시 적용
+  for (let i = 0; i < maxSlots; i++) {
+      if (i >= currentSlotsCount) {
+          allSlotsElements[i].classList.add('disabled');
+      }
+  }
 
-  // 선택된 석판을 아티팩트 뒤에 추가
+  // 선택된 아티팩트와 석판을 우선순위에 따라 정렬
+  // selectedArtifacts는 우선순위 리스트에서 드래그 순서에 따라 이미 정렬되어 있습니다.
+  const allPrioritizedItems = [...selectedArtifacts];
+
+  // 선택된 석판을 아티팩트 뒤에 추가 (석판은 현재 우선순위 정렬이 없으므로 단순히 추가)
   selectedSlates.forEach(slate => {
       allPrioritizedItems.push(slate);
   });
@@ -478,7 +483,7 @@ tabSlates.addEventListener('click', () => {
 checkboxes.forEach(chk => {
   chk.addEventListener('change', () => {
     renderSlots(calculateSlots()); // 슬롯 수 변경 시 전체 그리드 다시 그리기
-    // autoArrange(); // 자동 배치를 원하면 주석 해제 (UX상 자동 실행은 혼란 줄 수 있음)
+    // autoArrange(); // 슬롯 수 변경 시 자동 배치를 원하면 주석 해제 (UX상 자동 실행은 혼란 줄 수 있음)
   });
 });
 
@@ -494,58 +499,42 @@ async function loadData() {
   const res2 = await fetch('slates.json');
   slates = await res2.json();
 
-  // artifact의 tags가 문자열인 경우 배열로 변환 및 upgrade 필드 공백 제거
+  // artifacts 데이터 처리: tags가 문자열인 경우 배열로 변환 및 maxUpgrade, upgrade 기본값 설정
   artifacts.forEach(item => {
+    // tags 필드가 문자열이고 콤마가 포함된 경우 배열로 분할
     if (typeof item.tags === 'string' && item.tags.includes(',')) {
       item.tags = item.tags.split(',').map(tag => tag.trim());
-    } else if (typeof item.tags === 'string' && item.tags !== '') {
-      item.tags = [item.tags];
-    } else {
-      item.tags = []; // 태그가 없는 경우 빈 배열
     }
-    // upgrade, maxUpgrade의 공백 제거 (JSON 파싱 문제 방지)
-    if (item['upgrade '] !== undefined) {
-        item.upgrade = item['upgrade '];
-        delete item['upgrade '];
-    } else if (item.upgrade === undefined) { // upgrade 필드가 아예 없는 경우 0으로 초기화
+    // tags 필드가 문자열이지만 콤마가 없고 비어있지 않은 경우 단일 요소 배열로
+    else if (typeof item.tags === 'string' && item.tags !== '') {
+      item.tags = [item.tags];
+    }
+    // tags 필드가 없거나 다른 타입인 경우 빈 배열로 초기화
+    else {
+      item.tags = [];
+    }
+
+    // maxUpgrade, upgrade 필드가 없는 경우 0으로 초기화
+    // artifacts.json에 공백 필드를 제거했으므로 직접 접근
+    if (item.upgrade === undefined) {
         item.upgrade = 0;
     }
-    if (item['maxUpgrade '] !== undefined) {
-        item.maxUpgrade = item['maxUpgrade '];
-        delete item['maxUpgrade '];
-    } else if (item.maxUpgrade === undefined) { // maxUpgrade 필드가 아예 없는 경우 (기본값 설정 필요 시)
-        item.maxUpgrade = 0; // 혹은 적절한 기본값
+    if (item.maxUpgrade === undefined) {
+        item.maxUpgrade = 0;
     }
 
     // 모든 아티팩트 태그 수집
     item.tags.forEach(tag => allTags.add(tag));
   });
 
-  // slate의 tags 처리 (slates.json에 tags가 현재 없지만, 미래 확장 대비)
+  // slates 데이터 처리: tags, upgrade, maxUpgrade 필드가 없으므로 특별한 처리 없음
+  // 만약 slates.json에 나중에 해당 필드가 추가된다면 여기에 로직 추가
   slates.forEach(item => {
-    if (typeof item.tags === 'string' && item.tags.includes(',')) {
-      item.tags = item.tags.split(',').map(tag => tag.trim());
-    } else if (typeof item.tags === 'string' && item.tags !== '') {
-      item.tags = [item.tags];
-    } else {
-      item.tags = [];
-    }
-    // upgrade, maxUpgrade 필드가 slates.json에도 있을 수 있으므로 추가
-    if (item['upgrade '] !== undefined) {
-        item.upgrade = item['upgrade '];
-        delete item['upgrade '];
-    } else if (item.upgrade === undefined) {
-        item.upgrade = 0;
-    }
-    if (item['maxUpgrade '] !== undefined) {
-        item.maxUpgrade = item['maxUpgrade '];
-        delete item['maxUpgrade '];
-    } else if (item.maxUpgrade === undefined) {
-        item.maxUpgrade = 0;
-    }
-
-    // 모든 석판 태그 수집 (만약 slates.json에 tags가 있다면)
-    item.tags.forEach(tag => allTags.add(tag));
+    // tags 필드가 slates.json에 없으므로, 빈 배열로 강제 초기화
+    item.tags = [];
+    // upgrade, maxUpgrade 필드가 slates.json에 없으므로, 0으로 초기화
+    item.upgrade = 0;
+    item.maxUpgrade = 0;
   });
 
 
