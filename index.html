@@ -19,13 +19,6 @@
     <div class="main-body">
       <!-- 좌측: 아이템 탭 + 목록 -->
       <div class="left-pane">
-        <div class="item-tab">
-          <button id="tab-artifacts" class="active">🧿 아티팩트</button>
-          <button id="tab-slates">📜 석판</button>
-        </div>
-        <div class="item-list" id="item-list"></div>
-      </div>
-
       <!-- 우측: 선택 + 정렬 + 공간 -->
       <div class="right-pane">
         <h4>✅ 선택된 아티팩트</h4>
@@ -40,7 +33,7 @@
         <h4>🧱 슬롯 격자 미리보기 (6x6+3)</h4>
         <div class="grid" id="main-grid"></div>
 
-        <button onclick="autoArrange()">🔄 자동 배치</button>
+        <button id="auto-arrange-btn">🔄 자동 배치</button>
       </div>
     </div>
   </div>
