@@ -24,19 +24,13 @@ function createSlot(index) {
 
 function renderSlots(count) {
   grid.innerHTML = '';
-  extra.innerHTML = '';
-
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < maxSlots; i++) {
     const slot = createSlot(i);
     if (i >= count) slot.classList.add('disabled');
     grid.appendChild(slot);
   }
-  for (let i = 36; i < maxSlots; i++) {
-    const slot = createSlot(i);
-    if (i >= count) slot.classList.add('disabled');
-    extra.appendChild(slot);
-  }
 }
+
 
 function calculateSlots() {
   let total = baseSlots;
