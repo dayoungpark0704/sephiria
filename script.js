@@ -354,7 +354,7 @@ function applyFilterAndRenderList() {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
             // slates.json에 tags 필드가 없으므로, 태그 필터는 아티팩트 탭에서만 유효
             // 여기서는 항상 true로 처리 (혹은 태그 필터 버튼을 숨기거나 비활성화)
-            const tagMatch = true;
+            const tagMatch = true; //
             return nameMatch && tagMatch;
         });
         renderItemList(filteredItems, false);
@@ -514,7 +514,7 @@ async function loadData() {
       item.tags = [];
     }
 
-    // maxUpgrade, upgrade 필드가 없는 경우 0으로 초기화
+    // upgrade, maxUpgrade 필드가 없는 경우 0으로 초기화
     // artifacts.json에 공백 필드를 제거했으므로 직접 접근
     if (item.upgrade === undefined) {
         item.upgrade = 0;
