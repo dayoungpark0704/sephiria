@@ -366,6 +366,73 @@ body {
   color: #eee;
 }
 
+/* 새로운 레이아웃에 맞춰 추가/조정 */
+
+/* top-controls가 left-pane 안으로 이동하면서 필요한 조정 */
+.left-pane .top-controls {
+  margin-bottom: 1rem; /* 슬롯 격자와의 간격 */
+  /* 필요하다면 여기에 추가적인 스타일 (예: 내부 여백) */
+}
+
+/* 자동 배치 버튼이 left-pane의 전체 너비를 차지하도록 */
+.left-pane #auto-arrange-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* 오른쪽 패널의 높이를 늘려 선택 목록과 정렬 목록이 더 잘 보이도록 */
+.right-pane {
+  flex: 2; /* 기존 값 유지 */
+  /* max-height: calc(100vh - 80px); */ /* 뷰포트 높이에 맞춰 조절 (필요 시 주석 해제 후 높이 조정) */
+  /* overflow-y: auto; */ /* 내용이 넘칠 경우 스크롤 (필요 시 주석 해제) */
+}
+
+/* 아이템 목록과 선택된 목록이 스크롤될 수 있도록 높이 지정 */
+.item-list {
+  flex-grow: 1; /* 남은 공간을 채우도록 */
+  min-height: 150px; /* 최소 높이 지정 (내용이 적어도 최소 높이 유지) */
+  max-height: 300px; /* 최대 높이 지정 (이 이상이면 스크롤) */
+}
+
+.selection-list {
+  min-height: 100px;
+  max-height: 180px; /* 선택 목록 최대 높이 조절 */
+}
+
+.priority-list {
+  min-height: 40px;
+  max-height: 80px; /* 우선순위 목록 최대 높이 조절 */
+  align-items: flex-start; /* 아이템이 위에서부터 정렬되도록 */
+  flex-wrap: wrap; /* 아이템이 여러 줄로 표시되도록 */
+}
+
+/* 스크롤바가 필요하다면 (모든 스크롤 가능한 요소에 적용) */
+.item-list, .selection-list, .priority-list {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #555 #333; /* Firefox */
+}
+
+/* Chrome, Edge, Safari */
+.item-list::-webkit-scrollbar,
+.selection-list::-webkit-scrollbar,
+.priority-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.item-list::-webkit-scrollbar-track,
+.selection-list::-webkit-scrollbar-track,
+.priority-list::-webkit-scrollbar-track {
+  background: #333;
+}
+
+.item-list::-webkit-scrollbar-thumb,
+.selection-list::-webkit-scrollbar-thumb,
+.priority-list::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
+
 .slot .item-in-slot .item-level {
   font-size: 0.65em; /* 레벨 폰트 크기 조절 */
   color: #ccc;
