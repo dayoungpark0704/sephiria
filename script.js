@@ -619,71 +619,24 @@ function findSolution(itemIndex, currentGridState, allItemsToPlace, totalActiveS
     return false;
 }
 
-
+// script.js 내 autoArrange 함수 안 (수정될 코드)
 function autoArrange() {
-  const currentSlotsCount = calculateSlots();
-  const allSlotsElements = [...document.querySelectorAll('.slot')];
-
-  allSlotsElements.forEach(slot => {
-    slot.innerHTML = ``;
-    slot.classList.remove('disabled');
-  });
-  const tempGridForArrangement = new Array(maxSlots).fill(null);
-
-  for (let i = 0; i < maxSlots; i++) {
-      if (i >= currentSlotsCount) {
-          allSlotsElements[i].classList.add('disabled');
-      }
-  }
-
-  let allItemsToPlace = [...selectedArtifacts, ...selectedSlates];
-
-  allItemsToPlace.sort((a, b) => {
-    const conditionA = a.condition && Array.isArray(a.condition) && a.condition.length > 0 ? a.condition[0] : '';
-    const conditionB = b.condition && Array.isArray(b.condition) && b.condition.length > 0 ? b.condition[0] : '';
-
-    const conditionPriority = {
-        "양쪽칸이 공백": 5,
-        "안쪽": 4,
-        "최상단": 3,
-        "최하단": 3,
-        "가장자리": 2,
-        "": 1
-    };
-
-    const priorityA = conditionPriority[conditionA] || 0;
-    const priorityB = conditionPriority[conditionB] || 0;
-
-    if (priorityA !== priorityB) {
-        return priorityB - priorityA;
-    }
-
-    if (a.id.startsWith('aritifact_') && !b.id.startsWith('aritifact_')) {
-        return -1;
-    }
-    if (!a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
-        return 1;
-    }
-
-    if (a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
-        const orderA = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === a.instanceId);
-        const orderB = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === b.instanceId);
-        return orderA - orderB;
-    }
-    return 0;
-  });
+  // ... (생략) ...
 
   if (findSolution(0, tempGridForArrangement, allItemsToPlace, currentSlotsCount)) {
       console.log("모든 아이템 배치 성공!");
       currentGridItems = [...tempGridForArrangement];
 
+      // !!! 이 부분 (selectedArtifacts.forEach 루프)을 다시 추가합니다. !!!
+      // 배치 완료 후 아티팩트 레벨을 maxUpgrade까지 강화
       selectedArtifacts.forEach(itemInstance => {
           const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
           if (itemInGrid) {
-              itemInGrid.level = itemInGrid.maxUpgrade;
-              itemInstance.level = itemInstance.maxUpgrade;
+              itemInGrid.level = itemInGrid.maxUpgrade; // 그리드 내 아이템 인스턴스 강화
+              itemInstance.level = itemInstance.maxUpgrade; // selectedArtifacts 목록 내 인스턴스 강화
           }
       });
+      // -------------------------------------------------------------
   } else {
       console.log("모든 아이템을 배치할 수 없습니다.");
       alert("모든 아이템을 그리드에 배치할 수 없습니다. 슬롯 수를 늘리거나 조건을 재조정해보세요.");
@@ -691,6 +644,7 @@ function autoArrange() {
 
   updateAllSlotsUI();
 }
+
 
 /**
  * 석판을 90도 회전시키고, 해당 슬롯 및 주변 슬롯의 UI를 업데이트합니다.
