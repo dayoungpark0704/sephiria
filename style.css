@@ -12,17 +12,17 @@ body {
 }
 
 /* top-controls가 left-pane 안으로 이동하면서 필요한 조정 */
-.top-controls { /* .left-pane .top-controls 로 구체화된 스타일을 여기로 올립니다. */
-  border: 1px solid #444; /* top-controls의 원래 테두리 */
-  background-color: #1a1a1a; /* top-controls의 원래 배경색 */
-  padding: 10px; /* top-controls의 원래 패딩 */
-  margin-bottom: 1rem; /* 슬롯 격자와의 간격 유지 */
-  display: flex; /* 내부 체크박스 정렬 */
-  gap: 15px; /* 체크박스 간 간격 */
+.top-controls {
+  border: 1px solid #444;
+  background-color: #1a1a1a;
+  padding: 10px;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 15px;
   align-items: center;
 }
 
-.top-controls label { /* .top-controls 내 label 스타일 추가 */
+.top-controls label {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -35,7 +35,7 @@ body {
 }
 
 .left-pane {
-  flex: 1; /* 왼쪽 패널이 차지할 공간 */
+  flex: 1;
   border: 1px solid #444;
   padding: 10px;
   background-color: #181818;
@@ -44,7 +44,7 @@ body {
 }
 
 .right-pane {
-  flex: 2; /* 오른쪽 패널이 차지할 공간 */
+  flex: 2;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -248,7 +248,6 @@ body {
   height: 22px;
   font-size: 0.9em;
   line-height: 1;
-  text-align: center;
   padding: 0;
   cursor: pointer;
   position: absolute;
@@ -266,40 +265,86 @@ body {
   background-color: #c82333;
 }
 
+/* 우선순위 목록 스타일 */
 .priority-list {
   display: flex;
-  flex-direction: row;
-  gap: 10px;
+  flex-direction: row; /* 아이템을 가로로 나열 */
+  flex-wrap: wrap; /* 공간 부족 시 다음 줄로 넘김 */
+  gap: 10px; /* 아이템 간 간격 */
   padding: 10px;
-  overflow-x: auto;
-  white-space: nowrap;
+  overflow-x: auto; /* 가로 스크롤 허용 (필요 시) */
+  white-space: nowrap; /* 기본적으로 줄바꿈 방지 */
   background-color: #111;
   border: 1px solid #333;
-  min-height: 40px;
-  align-items: flex-start; /* 아이템이 위에서부터 정렬되도록 */
-  flex-wrap: wrap; /* 아이템이 여러 줄로 표시되도록 */
+  min-height: 40px; /* 최소 높이 */
+  align-items: flex-start; /* 아이템 상단 정렬 */
 }
 
-.priority-list li {
+/* 우선순위 목록 내 각 아이템 (div.priority-item) 스타일 */
+.priority-list .priority-item {
   background-color: #333;
   border: 1px solid #555;
-  padding: 6px 12px;
-  cursor: grab;
+  padding: 5px; /* 패딩 조정 */
   border-radius: 4px;
   font-size: 0.9em;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.1s;
+  flex-shrink: 0; /* 아이템이 줄어들지 않도록 */
+  position: relative; /* 순서 번호 위치를 위해 */
+  display: flex; /* 내부 요소 정렬 */
+  flex-direction: column; /* 이미지와 번호 세로로 */
+  align-items: center; /* 가운데 정렬 */
+  justify-content: center;
+  width: 60px; /* 고정 너비 */
+  height: 70px; /* 고정 높이 */
+  cursor: pointer; /* 클릭 가능 표시 */
 }
 
-.priority-list li:hover {
+.priority-list .priority-item:hover {
   background-color: #444;
+  transform: translateY(-1px);
 }
 
-.priority-list li.dragging {
-  opacity: 0.5;
-  border: 2px dashed #00bfff;
-  background-color: #555;
+/* 우선순위 목록에서 선택된 아이템 스타일 */
+.priority-list .priority-item.selected {
+  background-color: #00ff00; /* 초록색 배경 */
+  border-color: #00ff00;
+  color: #111; /* 글씨색 조정 */
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); /* 그림자 효과 */
+}
+.priority-list .priority-item.selected .order-number {
+  color: #111; /* 초록색 배경에 맞춰 번호 색상 조정 */
+  background-color: #fff; /* 번호 배경도 흰색으로 */
 }
 
+
+/* 우선순위 아이템 내 순서 번호 스타일 */
+.priority-list .priority-item .order-number {
+    position: absolute;
+    top: -8px; /* 위로 살짝 올림 */
+    left: -8px; /* 왼쪽으로 살짝 옮김 */
+    background-color: #007bff; /* 파란색 배경 (기본) */
+    color: white;
+    font-size: 0.6em;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%; /* 원형 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    z-index: 1; /* 아이템 위에 표시 */
+    border: 1px solid #555; /* 작은 테두리 추가 */
+}
+
+/* 우선순위 아이템 내 이미지 스타일 */
+.priority-list .priority-item img {
+    width: 30px; /* 아이콘 크기 */
+    height: 30px;
+    object-fit: contain;
+    margin-bottom: 5px; /* 번호와의 간격 */
+}
+
+/* 슬롯 격자 스타일 */
 .grid {
   display: grid;
   grid-template-columns: repeat(6, 80px);
@@ -339,39 +384,74 @@ body {
   font-size: 0.8em;
 }
 
+/* 슬롯 내부 아이템 정보 레이아웃 조정 */
 .slot .item-in-slot {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  padding: 2px;
-  box-sizing: border-box;
-  background-color: #444;
-  border-radius: 3px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    box-sizing: border-box;
+    background-color: #444;
+    border-radius: 3px;
+}
+
+.slot .item-in-slot .item-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    width: 100%;
 }
 
 .slot .item-in-slot img {
   max-width: 60px;
   max-height: 60px;
   object-fit: contain;
+  transition: transform 0.3s ease-out; /* 회전 애니메이션 */
 }
 
+/* 회전 상태에 따른 이미지 회전 */
+.slot .item-in-slot img.rotate-90 { transform: rotate(90deg); }
+.slot .item-in-slot img.rotate-180 { transform: rotate(180deg); }
+.slot .item-in-slot img.rotate-270 { transform: rotate(270deg); }
+
 .slot .item-in-slot .item-name {
-  font-size: 0.75em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90%;
-  color: #eee;
+    font-size: 0.75em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+    color: #eee;
+    margin-bottom: 2px;
 }
 
 .slot .item-in-slot .item-level {
-  font-size: 0.65em;
-  color: #ccc;
+    font-size: 0.65em;
+    color: #ccc;
+    font-weight: bold;
 }
 
+.slot .item-in-slot .item-level.level-maxed {
+    color: #00ff00;
+}
+
+/* 슬롯 오른쪽 위에 추가 강화 수치 표시 */
+.slot-buff-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #00ff00; /* 초록색 글씨 */
+  font-size: 0.6em;
+  font-weight: bold;
+  z-index: 10;
+}
+
+/* 일반 버튼 스타일 */
 button {
   background-color: #007bff;
   color: #fff;
@@ -417,47 +497,4 @@ button:active {
 .priority-list::-webkit-scrollbar-thumb {
   background-color: #555;
   border-radius: 4px;
-}
-/* style.css 에 추가 */
-
-/* 슬롯 내부 아이템 정보 레이아웃 조정 */
-.slot .item-in-slot {
-    position: relative; /* 추가 강화 수치 표시를 위해 */
-    /* 기존 스타일 유지 (display: flex, flex-direction: column 등) */
-}
-
-.slot .item-in-slot .item-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1; /* 이름과 레벨이 공간을 차지하도록 */
-    width: 100%; /* 부모 너비에 맞춤 */
-}
-
-.slot .item-in-slot .item-name {
-    /* 기존 스타일 유지 */
-    margin-bottom: 2px; /* 레벨과의 간격 */
-}
-
-.slot .item-in-slot .item-level {
-    /* 기존 스타일 유지 */
-    font-weight: bold; /* 레벨 강조 */
-}
-
-.slot .item-in-slot .item-level.level-maxed {
-    color: #00ff00; /* MaxUpgrade 이상일 때 초록색 */
-}
-
-.slot-buff-indicator {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  /* background-color: #007bff; /* 이 줄을 삭제하거나 주석 처리 */
-  color: #00ff00; /* 글씨 색상을 초록색으로 변경 */
-  font-size: 0.6em;
-  /* padding: 2px 4px; /* 이 줄을 삭제하거나 주석 처리 */
-  /* border-radius: 3px; /* 이 줄을 삭제하거나 주석 처리 */
-  font-weight: bold;
-  z-index: 10;
 }
