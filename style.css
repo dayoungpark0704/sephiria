@@ -347,7 +347,6 @@ body {
 /* 슬롯 격자 스타일 */
 .grid {
   display: grid;
-  /* grid-template-columns: repeat(6, 90px); */
   grid-template-columns: repeat(6, 100px); /* 6개의 열, 각 열의 너비를 100px로 조정 */
   gap: 5px;
   margin-bottom: 1rem;
@@ -356,15 +355,12 @@ body {
 .slot {
   background-color: #333;
   border: 1px solid #666;
-  /* width: 90px; */
-  /* height: 90px; */
   width: 100px;  /* 슬롯 너비를 100px로 조정 */
   height: 100px; /* 슬롯 높이를 100px로 조정 */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  /* font-size: 10px; <- 이 부분은 아래에서 개별 폰트 크기로 조정할 것이므로 여기서 크게 중요하지 않습니다. */
   text-align: center;
   position: relative;
   border-radius: 4px;
@@ -384,7 +380,7 @@ body {
 
 .slot .name {
   color: #888;
-  /* font-size: 0.9em; */ /* 빈 슬롯 텍스트 삭제로 인해 이 스타일은 이제 거의 사용되지 않습니다. */
+  /* 빈 슬롯 텍스트 삭제로 인해 이 스타일은 이제 거의 사용되지 않습니다. */
 }
 
 /* 슬롯 내부 아이템 정보 레이아웃 조정 */
@@ -412,8 +408,6 @@ body {
 }
 
 .slot .item-in-slot img {
-  /* max-width: 70px; */
-  /* max-height: 70px; */
   max-width: 80px;  /* 이미지 최대 너비를 80px로 조정 */
   max-height: 80px; /* 이미지 최대 높이를 80px로 조정 */
   object-fit: contain;
@@ -426,7 +420,6 @@ body {
 .slot .item-in-slot img.rotate-270 { transform: rotate(270deg); }
 
 .slot .item-in-slot .item-name {
-    /* font-size: 0.85em; */
     font-size: 0.95em; /* 이름 폰트 크기 증가 */
     white-space: nowrap;
     overflow: hidden;
@@ -437,7 +430,6 @@ body {
 }
 
 .slot .item-in-slot .item-level {
-    /* font-size: 0.75em; */
     font-size: 0.85em; /* 레벨 폰트 크기 증가 */
     color: #ccc;
     font-weight: bold;
@@ -453,7 +445,6 @@ body {
   top: 2px;
   right: 2px;
   color: #00ff00; /* 초록색 글씨 */
-  /* font-size: 0.7em; */
   font-size: 0.8em; /* 버프 표시 폰트 크기 증가 */
   font-weight: bold;
   z-index: 10;
