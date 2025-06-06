@@ -449,16 +449,15 @@ button:active {
     color: #00ff00; /* MaxUpgrade 이상일 때 초록색 */
 }
 
-/* 슬롯 오른쪽 위에 추가 강화 수치 표시 */
 .slot-buff-indicator {
   position: absolute;
   top: 2px;
   right: 2px;
-  background-color: #007bff; /* 파란색 배경 */
-  color: white;
+  /* background-color: #007bff; /* 이 줄을 삭제하거나 주석 처리 */
+  color: #00ff00; /* 글씨 색상을 초록색으로 변경 */
   font-size: 0.6em;
-  padding: 2px 4px;
-  border-radius: 3px;
+  /* padding: 2px 4px; /* 이 줄을 삭제하거나 주석 처리 */
+  /* border-radius: 3px; /* 이 줄을 삭제하거나 주석 처리 */
   font-weight: bold;
-  z-index: 10; /* 다른 요소 위에 표시 */
+  z-index: 10;
 }
