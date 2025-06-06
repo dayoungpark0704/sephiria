@@ -631,13 +631,6 @@ function autoArrange() {
     }
   }
 
-  // 자동 배치 완료 후 아티팩트 레벨을 maxUpgrade까지 강화
-  selectedArtifacts.forEach(item => {
-    item.level = item.maxUpgrade;
-    renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true); // 선택된 목록 UI 업데이트
-  });
-
-
   // 배치 완료 후 모든 슬롯의 UI를 업데이트하여 버프, 컨디션, 강화 상태를 정확히 반영
   updateAllSlotsUI();
 }
