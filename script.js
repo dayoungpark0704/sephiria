@@ -567,18 +567,36 @@ function calculateSlotBuffs() {
  */
 function updateAllSlotsUI() {
     const currentSlotsCount = calculateSlots();
+    const slotBuffs = calculateSlotBuffs(); // 1. 모든 슬롯의 버프를 미리 계산합니다.
+
     for(let i = 0; i < currentSlotsCount; i++) {
         const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
         if (slotElement) {
             if(currentGridItems[i]) {
+                // 2. 아이템이 있는 슬롯은 기존대로 renderItemInSlot 함수를 통해 렌더링합니다.
+                //    renderItemInSlot 내부에서 slotBuffs 값을 사용합니다.
                 renderItemInSlot(slotElement, currentGridItems[i]);
             } else {
-                slotElement.innerHTML = `<div class="name">빈 슬롯 ${i + 1}</div>`;
+                // 3. 빈 슬롯 처리: 해당 빈 슬롯의 추가 강화 수치를 가져옵니다.
+                const additionalUpgrade = slotBuffs[i] || 0; 
+
+                // 4. 추가 강화 수치가 0보다 클 경우에만 slot-buff-indicator를 HTML에 추가합니다.
+                slotElement.innerHTML = `
+                    <div class="name">빈 슬롯 ${i + 1}</div>
+                    ${additionalUpgrade > 0 ? `<div class="slot-buff-indicator">+${additionalUpgrade}</div>` : ''}
+                `;
             }
         }
     }
+    // disabled된 슬롯은 변경하지 않습니다.
+    for(let i = currentSlotsCount; i < maxSlots; i++) {
+        const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
+        if (slotElement) {
+            slotElement.classList.add('disabled');
+            slotElement.innerHTML = `<div class="name">빈 슬롯 ${i + 1}</div>`;
+        }
+    }
 }
-
 
 function autoArrange() {
   const currentSlotsCount = calculateSlots();
