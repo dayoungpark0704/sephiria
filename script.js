@@ -1,31 +1,31 @@
 /** script.js **/
 
 const baseSlots = 30;
-const maxSlots = 39; // 6x6 그리드 + 3개 추가 슬롯
+const maxSlots = 39;
 const grid = document.getElementById('main-grid');
-const checkboxes = document.querySelectorAll('.option'); // 슬롯 설정 체크박스
+const checkboxes = document.querySelectorAll('.option');
 const itemList = document.getElementById('item-list');
 const tabArtifacts = document.getElementById('tab-artifacts');
 const tabSlates = document.getElementById('tab-slates');
 const selectedArtifactsEl = document.getElementById('selected-artifacts');
 const selectedSlatesEl = document.getElementById('selected-slates');
-const priorityList = document.getElementById('priority-list'); // div로 변경됨
-const autoArrangeBtn = document.getElementById('auto-arrange-btn'); // 자동 배치 버튼
+const priorityList = document.getElementById('priority-list');
 
-// 검색 및 필터링 관련 DOM 요소
 const itemSearchInput = document.getElementById('item-search');
 const tagFiltersContainer = document.getElementById('tag-filters');
 
 let artifacts = [];
 let slates = [];
-let selectedArtifacts = []; // 클릭 순서대로 정렬될 아티팩트 목록
-let selectedSlates = [];
-let currentGridItems = new Array(maxSlots).fill(null); // 그리드 슬롯의 현재 상태를 저장하는 배열
+let selectedArtifacts = []; // 이제 각 아이템은 고유한 instanceId를 가짐
+let selectedSlates = []; // 이제 각 아이템은 고유한 instanceId를 가짐
+let currentGridItems = new Array(maxSlots).fill(null); // 각 슬롯에는 instanceId를 가진 아이템 객체가 저장됨
 
-let currentActiveTab = 'artifacts'; // 현재 활성화된 탭 ('artifacts' 또는 'slates')
-let allTags = new Set(); // 모든 아티팩트의 태그를 저장할 Set (slates에는 tags가 없으므로 아티팩트만)
+let currentActiveTab = 'artifacts';
+let allTags = new Set();
+let nextInstanceId = 0; // 고유 instanceId 생성을 위한 카운터
+let hoveredSlotIndex = -1;
 
-let hoveredSlotIndex = -1; // 현재 마우스가 올라가 있는 슬롯의 인덱스
+let selectedPriorityItemInstanceId = null; // 우선순위 목록에서 현재 선택된 아이템의 instanceId
 
 // ==========================
 // 슬롯 관련 함수
@@ -34,9 +34,8 @@ let hoveredSlotIndex = -1; // 현재 마우스가 올라가 있는 슬롯의 인
 function createSlot(index) {
   const slot = document.createElement('div');
   slot.className = 'slot';
-  slot.dataset.index = index; // 슬롯 인덱스 추가
+  slot.dataset.index = index;
 
-  // 마우스 오버/리브 이벤트 추가
   slot.addEventListener('mouseenter', () => {
     hoveredSlotIndex = index;
   });
@@ -44,12 +43,39 @@ function createSlot(index) {
     hoveredSlotIndex = -1;
   });
 
-  // 드래그 앤 드롭 이벤트 리스너 추가
+  // 슬롯 우클릭으로 아이템 제거 기능 추가
+  slot.addEventListener('contextmenu', e => {
+    e.preventDefault(); // 기본 컨텍스트 메뉴 방지
+
+    const itemInSlot = currentGridItems[index];
+    if (itemInSlot) { // 슬롯에 아이템이 있는 경우
+      // currentGridItems에서 해당 아이템 제거
+      currentGridItems[index] = null;
+      document.querySelector(`.slot[data-index="${index}"]`).innerHTML = `<div class="name">빈 슬롯 ${index + 1}</div>`;
+
+      // selectedArtifacts 또는 selectedSlates에서도 해당 instanceId를 가진 아이템 제거
+      const list = itemInSlot.id.startsWith('aritifact_') ? selectedArtifacts : selectedSlates;
+      const instanceIndexInList = list.findIndex(i => i.instanceId === itemInSlot.instanceId);
+      if (instanceIndexInList !== -1) {
+        list.splice(instanceIndexInList, 1);
+        // 선택 목록 UI 업데이트
+        if (itemInSlot.id.startsWith('aritifact_')) {
+          renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
+          updatePriorityList(); // 아티팩트 제거 시 우선순위 목록도 업데이트
+        } else {
+          renderSelectedItems(selectedSlates, selectedSlatesEl, false);
+        }
+      }
+
+      // 그리드 및 주변 슬롯 UI 업데이트
+      updateAllSlotsUI();
+    }
+  });
+
   slot.addEventListener('dragover', e => {
-    e.preventDefault(); // 드롭 허용
-    // .item.dragging (선택 목록에서 드래그) 또는 .item-in-slot.dragging (그리드 내에서 드래그)
+    e.preventDefault();
     const draggingItem = document.querySelector('.item.dragging, .item-in-slot.dragging');
-    if (draggingItem && !slot.classList.contains('disabled')) { // 비활성화된 슬롯에는 드롭 불가
+    if (draggingItem && !slot.classList.contains('disabled')) {
       slot.classList.add('drag-over');
     }
   });
@@ -62,73 +88,81 @@ function createSlot(index) {
     e.preventDefault();
     slot.classList.remove('drag-over');
 
-    if (slot.classList.contains('disabled')) return; // 비활성화된 슬롯에는 드롭 불가
+    if (slot.classList.contains('disabled')) return;
 
     const itemId = e.dataTransfer.getData('itemId');
     const isArtifactStr = e.dataTransfer.getData('isArtifact');
     const isArtifact = isArtifactStr === 'true';
-    const sourceSlotIndex = e.dataTransfer.getData('sourceSlotIndex'); // 드래그 시작 슬롯 인덱스 (그리드 내부 이동 시)
+    const sourceSlotInstanceId = e.dataTransfer.getData('sourceSlotInstanceId'); // 드래그 시작 아이템의 instanceId
+    const sourceSlotIndex = e.dataTransfer.getData('sourceSlotIndex'); // 드래그 시작 슬롯 인덱스
 
     let draggedItem;
-    if (isArtifact) {
-      draggedItem = selectedArtifacts.find(item => item.id === itemId);
-    } else {
-      draggedItem = selectedSlates.find(item => item.id === itemId);
+    // instanceId로 draggedItem을 찾음 (선택 목록 또는 그리드에서 온 아이템)
+    if (sourceSlotInstanceId) { // 그리드 내 아이템 이동
+        const srcItem = currentGridItems.find(item => item && item.instanceId === sourceSlotInstanceId);
+        if (srcItem) {
+            draggedItem = srcItem;
+        } else { // 예외 처리: 그리드 내에서 아이템을 못 찾은 경우 (발생해서는 안 됨)
+            console.error("Draggged item not found in currentGridItems:", sourceSlotInstanceId);
+            return;
+        }
+    } else { // 선택 목록에서 온 아이템 (새로운 인스턴스 생성)
+        const originalItem = (isArtifact ? artifacts : slates).find(item => item.id === itemId);
+        if (originalItem) {
+            draggedItem = {
+                ...originalItem,
+                level: 0, // 초기 레벨 0
+                rotation: 0, // 초기 회전 0
+                instanceId: `instance_${nextInstanceId++}` // 고유 instanceId 부여
+            };
+            // 선택 목록에도 추가 (중복 선택 허용)
+            if (isArtifact) {
+                selectedArtifacts.push(draggedItem);
+                renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
+                updatePriorityList();
+            } else {
+                selectedSlates.push(draggedItem);
+                renderSelectedItems(selectedSlates, selectedSlatesEl, false);
+            }
+        } else {
+            console.error("Original item not found:", itemId);
+            return;
+        }
     }
-
-    if (!draggedItem) return; // 드래그된 아이템을 찾을 수 없으면 중단
 
     const targetIndex = parseInt(slot.dataset.index);
 
-    // 그리드 내에서 아이템을 자기 자신 슬롯에 드롭하는 경우
+    // 자기 자신 슬롯에 드롭하는 경우
     if (sourceSlotIndex !== "" && parseInt(sourceSlotIndex) === targetIndex) {
-        updateAllSlotsUI();
+        updateAllSlotsUI(); // 버프 재계산 및 UI 업데이트
         return;
     }
 
     const itemAtTarget = currentGridItems[targetIndex]; // 타겟 슬롯에 이미 있던 아이템
 
-    // 그리드 밖에서 아이템이 온 경우 (selected 목록에서 드래그)
-    if (sourceSlotIndex === "") {
-        // 타겟 슬롯에 이미 아이템이 있다면 그 아이템은 빈 슬롯으로 돌려보낼 수 없으므로 무시하거나,
-        // 아니면 교환 로직을 추가해야 함. 여기서는 기존 아이템을 먼저 제거하고 배치합니다.
-        // (이 부분은 사용자 경험에 따라 교환 또는 거부 로직으로 변경 가능)
-        if (itemAtTarget) { // 타겟 슬롯에 이미 아이템이 있다면, 해당 아이템을 제거 (선택 목록으로 돌아가지 않음)
-            // 선택 목록에서도 제거 (원치 않으면 제거하지 않고, 그냥 그리드에서만 비움)
-            // 현재는 선택 목록에 남아있게 두겠습니다. 그리드에서만 비웁니다.
-            currentGridItems[targetIndex] = null; // 타겟 슬롯 비움
-            document.querySelector(`.slot[data-index="${targetIndex}"]`).innerHTML = `<div class="name">빈 슬롯 ${targetIndex + 1}</div>`;
-        }
-    }
-    // 그리드 내에서 아이템 이동 처리 (교환 로직)
-    else { // sourceSlotIndex가 있으면 그리드 내 이동
+    // 원래 슬롯 비우기 (그리드 내 이동 시)
+    if (sourceSlotIndex !== "") {
         const srcIndex = parseInt(sourceSlotIndex);
-
-        // 원래 위치 비우기
         currentGridItems[srcIndex] = null;
         document.querySelector(`.slot[data-index="${srcIndex}"]`).innerHTML = `<div class="name">빈 슬롯 ${srcIndex + 1}</div>`;
-
-        // 타겟 위치에 원래 있던 아이템을 원래 위치로 되돌리거나 (교환)
+    } else { // 선택 목록에서 드래그된 새 아이템이 타겟 슬롯에 놓이는 경우
+        // 기존 타겟 슬롯의 아이템을 제거 (selected list에는 남아있음)
         if (itemAtTarget) {
-            currentGridItems[srcIndex] = itemAtTarget; // 타겟 아이템을 원본 위치로
-            renderItemInSlot(document.querySelector(`.slot[data-index="${srcIndex}"]`), itemAtTarget);
+            currentGridItems[targetIndex] = null;
+            document.querySelector(`.slot[data-index="${targetIndex}"]`).innerHTML = `<div class="name">빈 슬롯 ${targetIndex + 1}</div>`;
         }
     }
 
     // 드래그된 아이템을 타겟 위치에 배치
-    if (draggedItem.rotation === undefined) {
-        draggedItem.rotation = 0; // 초기 회전 각도 0으로 설정
-    }
     currentGridItems[targetIndex] = draggedItem;
-    renderItemInSlot(slot, draggedItem);
+    renderItemInSlot(slot, draggedItem); // 타겟 슬롯 렌더링
 
-    updateAllSlotsUI();
+    updateAllSlotsUI(); // 전체 그리드 UI 업데이트
   });
 
   return slot;
 }
 
-// renderItemInSlot 함수 유지 (회전 버튼 삭제 및 이미지 회전 CSS 클래스 추가)
 function renderItemInSlot(slotElement, item) {
     const slotIndex = parseInt(slotElement.dataset.index);
     const slotBuffs = calculateSlotBuffs();
@@ -158,20 +192,21 @@ function renderItemInSlot(slotElement, item) {
     else if (item.rotation === 270) rotateClass = 'rotate-270';
 
     slotElement.innerHTML = `
-        <div class="item-in-slot ${conditionClass}" data-item-id="${item.id}" data-is-artifact="${item.id.startsWith('aritifact_')}" draggable="true">
+        <div class="item-in-slot ${conditionClass}" data-item-id="${item.id}" data-instance-id="${item.instanceId}" data-is-artifact="${item.id.startsWith('aritifact_')}" draggable="true">
             <img src="images/${item.icon}" alt="${item.name}" class="${rotateClass}" />
             <div class="item-info">
                 <div class="item-name">${item.name}</div>
                 <div class="item-level ${levelColorClass}">★${displayLevel}/${item.maxUpgrade}</div>
             </div>
             ${additionalUpgrade > 0 ? `<div class="slot-buff-indicator">+${additionalUpgrade}</div>` : ''}
-            </div>
+        </div>
     `;
 
     const itemInSlotDiv = slotElement.querySelector('.item-in-slot');
     if (itemInSlotDiv) {
         itemInSlotDiv.addEventListener('dragstart', e => {
             e.dataTransfer.setData('itemId', item.id);
+            e.dataTransfer.setData('instanceId', item.instanceId);
             e.dataTransfer.setData('isArtifact', item.id.startsWith('aritifact_'));
             e.dataTransfer.setData('sourceSlotIndex', slotIndex);
             e.currentTarget.classList.add('dragging');
@@ -218,70 +253,69 @@ function renderItemList(itemsToRender, isArtifact = true) {
   itemList.innerHTML = '';
   const currentSelectedList = isArtifact ? selectedArtifacts : selectedSlates;
 
-  itemsToRender.forEach(item => {
+  itemsToRender.forEach(originalItem => {
     const div = document.createElement('div');
     div.className = 'item';
-    // 선택된 아이템인 경우 'selected' 클래스 추가
-    if (currentSelectedList.some(sItem => sItem.id === item.id)) {
+    
+    if (currentSelectedList.some(selectedItemInstance => selectedItemInstance.id === originalItem.id)) {
       div.classList.add('selected');
     }
+
     div.innerHTML = `
-      <img src="images/${item.icon}" alt="${item.name}" />
-      <div>${item.name}</div>
+      <img src="images/${originalItem.icon}" alt="${originalItem.name}" />
+      <div>${originalItem.name}</div>
     `;
     div.addEventListener('click', () => {
       if (isArtifact) {
-        // 클릭 순서대로 우선순위 부여
-        toggleItemSelectionWithOrder(item, selectedArtifacts, selectedArtifactsEl, true);
+        addArtifactInstance(originalItem, selectedArtifacts, selectedArtifactsEl, true);
       } else {
-        toggleItemSelection(item, selectedSlates, selectedSlatesEl, false);
+        addSlateInstance(originalItem, selectedSlates, selectedSlatesEl, false);
       }
       applyFilterAndRenderList();
-      updatePriorityList(); // 우선순위 목록을 업데이트
+      updatePriorityList();
     });
     itemList.appendChild(div);
   });
 }
 
-// 아티팩트 클릭 시 우선순위 부여 로직 (클릭 순서대로 selectedArtifacts 정렬)
-function toggleItemSelectionWithOrder(item, selectedList, container, isArtifact) {
-  const foundIndex = selectedList.findIndex(i => i.id === item.id);
-  if (foundIndex !== -1) {
-    // 이미 선택된 아티팩트면 제거
-    selectedList.splice(foundIndex, 1);
-  } else {
-    // 선택되지 않은 아티팩트면 마지막에 추가 (클릭 순서대로)
-    selectedList.push({ ...item, level: 0 }); // level 초기값 0 유지
-  }
-  renderSelectedItems(selectedList, container, isArtifact);
+function addArtifactInstance(originalItem, selectedList, container, isArtifact) {
+    const newItemInstance = {
+        ...originalItem,
+        level: 0,
+        instanceId: `instance_${nextInstanceId++}`
+    };
+    selectedList.push(newItemInstance);
+    renderSelectedItems(selectedList, container, isArtifact);
 }
 
-// 기존 toggleItemSelection 함수는 석판에만 사용되도록 남겨둠 (아티팩트용은 WithOrder 함수 사용)
-function toggleItemSelection(item, selectedList, container, isArtifact) {
-    const foundIndex = selectedList.findIndex(i => i.id === item.id);
-    if (foundIndex !== -1) {
-        selectedList.splice(foundIndex, 1);
-    } else {
-        selectedList.push({ ...item, level: 0, rotation: 0 }); // 석판은 rotation 초기화
-    }
+function addSlateInstance(originalItem, selectedList, container, isArtifact) {
+    const newItemInstance = {
+        ...originalItem,
+        level: 0,
+        rotation: 0,
+        instanceId: `instance_${nextInstanceId++}`
+    };
+    selectedList.push(newItemInstance);
     renderSelectedItems(selectedList, container, isArtifact);
 }
 
 
 function renderSelectedItems(list, container, isArtifact) {
   container.innerHTML = '';
-  list.forEach(item => {
+  list.forEach(itemInstance => {
     const div = document.createElement('div');
     div.className = 'item';
     div.draggable = true;
-    div.dataset.itemId = item.id;
+    div.dataset.itemId = itemInstance.id;
+    div.dataset.instanceId = itemInstance.instanceId;
     div.dataset.isArtifact = isArtifact;
-    div.dataset.sourceSlotIndex = ""; // 이 아이템은 슬롯 밖에서 드래그되므로 빈 값
+    div.dataset.sourceSlotIndex = "";
 
     div.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('itemId', item.id);
+      e.dataTransfer.setData('itemId', itemInstance.id);
+      e.dataTransfer.setData('instanceId', itemInstance.instanceId);
       e.dataTransfer.setData('isArtifact', isArtifact);
-      e.dataTransfer.setData('sourceSlotIndex', ""); // 슬롯 밖에서 왔음을 알림
+      e.dataTransfer.setData('sourceSlotIndex', "");
       e.currentTarget.classList.add('dragging');
     });
 
@@ -289,38 +323,42 @@ function renderSelectedItems(list, container, isArtifact) {
       e.currentTarget.classList.remove('dragging');
     });
 
-    const tags = (isArtifact && item.tags) ? (Array.isArray(item.tags) ? item.tags.map(tag => `#${tag}`).join(' ') : `#${item.tags}`) : '';
+    const tags = (isArtifact && itemInstance.tags) ? (Array.isArray(itemInstance.tags) ? itemInstance.tags.map(tag => `#${tag}`).join(' ') : `#${itemInstance.tags}`) : '';
 
     div.innerHTML = `
-      <img src="images/${item.icon}" />
+      <img src="images/${itemInstance.icon}" />
       <div style="flex: 1">
-        <div><strong>${item.name}</strong></div>
+        <div><strong>${itemInstance.name}</strong></div>
         <div class="tags">${tags}</div>
       </div>
       <div class="controls">
-        <button onclick="adjustLevel('${item.id}', ${isArtifact}, -1)">-</button>
-        <span>${item.level || 0} / ${item.maxUpgrade}</span>
-        <button onclick="adjustLevel('${item.id}', ${isArtifact}, 1)">+</button>
+        <button onclick="adjustLevel('${itemInstance.instanceId}', ${isArtifact}, -1)">-</button>
+        <span>${itemInstance.level || 0} / ${itemInstance.maxUpgrade}</span>
+        <button onclick="adjustLevel('${itemInstance.instanceId}', ${isArtifact}, 1)">+</button>
       </div>
-      <button class="remove-btn" onclick="removeItemFromSelection('${item.id}', ${isArtifact})">x</button>
+      <button class="remove-btn" onclick="removeItemFromSelection('${itemInstance.instanceId}', ${isArtifact})">x</button>
     `;
     container.appendChild(div);
   });
 }
 
-function adjustLevel(id, isArtifact, delta) {
+function adjustLevel(instanceId, isArtifact, delta) {
   const list = isArtifact ? selectedArtifacts : selectedSlates;
-  const item = list.find(i => i.id === id);
-  if (!item) return;
-  item.level = Math.max(0, Math.min(item.maxUpgrade, (item.level || 0) + delta));
+  const itemInstance = list.find(i => i.instanceId === instanceId);
+  if (!itemInstance) return;
+  itemInstance.level = Math.max(0, Math.min(itemInstance.maxUpgrade, (itemInstance.level || 0) + delta));
   renderSelectedItems(list, isArtifact ? selectedArtifactsEl : selectedSlatesEl, isArtifact);
 
+  const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === instanceId);
+  if (itemInGrid) {
+      itemInGrid.level = itemInstance.level;
+  }
   updateAllSlotsUI();
 }
 
-function removeItemFromSelection(id, isArtifact) {
+function removeItemFromSelection(instanceId, isArtifact) {
     const list = isArtifact ? selectedArtifacts : selectedSlates;
-    const updatedList = list.filter(item => item.id !== id);
+    const updatedList = list.filter(itemInstance => itemInstance.instanceId !== instanceId);
     if (isArtifact) {
         selectedArtifacts = updatedList;
         renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
@@ -329,7 +367,7 @@ function removeItemFromSelection(id, isArtifact) {
         renderSelectedItems(selectedSlates, selectedSlatesEl, false);
     }
 
-    const slotIndexToRemove = currentGridItems.findIndex(item => item && item.id === id);
+    const slotIndexToRemove = currentGridItems.findIndex(itemInstance => itemInstance && itemInstance.instanceId === instanceId);
     if (slotIndexToRemove !== -1) {
         currentGridItems[slotIndexToRemove] = null;
         document.querySelector(`.slot[data-index="${slotIndexToRemove}"]`).innerHTML = `<div class="name">빈 슬롯 ${slotIndexToRemove + 1}</div>`;
@@ -346,22 +384,95 @@ function removeItemFromSelection(id, isArtifact) {
 // 우선순위 목록 (클릭 순서로)
 // ==========================
 
-function updatePriorityList() {
-  priorityList.innerHTML = ''; // div로 변경되었으므로 innerHTML 초기화
-  selectedArtifacts.forEach((item, index) => { // 아티팩트만 우선순위 리스트에 추가
-    const div = document.createElement('div');
-    div.className = 'priority-item'; // 새 클래스명
-    div.textContent = `${item.name}`; // 순서 번호는 따로 표시
-    div.dataset.id = item.id;
+// 우선순위 아이템을 특정 위치로 이동시키는 함수
+function movePriorityItemToIndex(instanceId, targetIndex) {
+    const currentInstance = selectedArtifacts.find(item => item.instanceId === instanceId);
+    if (!currentInstance) return;
 
+    const oldIndex = selectedArtifacts.indexOf(currentInstance);
+    if (oldIndex === -1) return;
+
+    // 배열에서 해당 아이템을 제거하고, 새로운 위치에 삽입
+    selectedArtifacts.splice(oldIndex, 1);
+    selectedArtifacts.splice(targetIndex, 0, currentInstance);
+
+    updatePriorityList(); // UI 업데이트
+}
+
+
+function updatePriorityList() {
+  priorityList.innerHTML = '';
+  selectedArtifacts.forEach((itemInstance, index) => {
+    const div = document.createElement('div');
+    div.className = 'priority-item';
+    div.dataset.id = itemInstance.id;
+    div.dataset.instanceId = itemInstance.instanceId;
+
+    // 이미지 아이콘 추가
+    const img = document.createElement('img');
+    img.src = `images/${itemInstance.icon}`;
+    img.alt = itemInstance.name;
+    img.style.width = '30px'; // 아이콘 크기
+    img.style.height = '30px';
+    img.style.marginBottom = '5px'; // 번호와의 간격
+    div.appendChild(img);
+
+    // 순서 번호 추가
     const orderNumberSpan = document.createElement('span');
     orderNumberSpan.className = 'order-number';
-    orderNumberSpan.textContent = index + 1; // 1부터 시작하는 순서 번호
-    div.prepend(orderNumberSpan); // 아이템 이름 앞에 추가
+    orderNumberSpan.textContent = index + 1;
+    div.appendChild(orderNumberSpan); // 아이콘 아래에 번호 표시
+
+    // 클릭 이벤트 리스너 추가 (순서 변경)
+    div.addEventListener('click', () => {
+        // 우선순위 목록에서 클릭된 아이템을 선택
+        selectedPriorityItemInstanceId = itemInstance.instanceId;
+        updatePriorityList(); // 선택 효과를 반영하기 위해 UI 다시 렌더링
+    });
+    
+    // 현재 선택된 아이템이라면 초록색 배경 추가
+    if (selectedPriorityItemInstanceId === itemInstance.instanceId) {
+        div.classList.add('selected');
+    }
 
     priorityList.appendChild(div);
   });
-  // 이제 드래그 관련 이벤트 리스너는 필요 없음 (ul->div로 변경되었고, 클릭 순서 우선순위임)
+
+  // 우선순위 목록에 아이템이 추가될 때마다 슬롯 클릭 이벤트 리스너를 추가 (순서 배치 기능)
+  priorityList.removeEventListener('click', handlePriorityListClick); // 중복 방지
+  priorityList.addEventListener('click', handlePriorityListClick);
+}
+
+// 우선순위 목록에서 아이템 클릭 시 순서 변경 처리
+function handlePriorityListClick(e) {
+    const clickedItemDiv = e.target.closest('.priority-item');
+    if (!clickedItemDiv) return;
+
+    const clickedInstanceId = clickedItemDiv.dataset.instanceId;
+
+    if (selectedPriorityItemInstanceId === null) {
+        // 첫 번째 클릭: 아이템 선택
+        selectedPriorityItemInstanceId = clickedInstanceId;
+    } else if (selectedPriorityItemInstanceId === clickedInstanceId) {
+        // 같은 아이템을 두 번 클릭: 선택 해제
+        selectedPriorityItemInstanceId = null;
+    } else {
+        // 다른 아이템 클릭: 순서 교환
+        const targetInstanceId = selectedPriorityItemInstanceId; // 이전에 선택된 아이템
+        const currentInstanceId = clickedInstanceId; // 새로 클릭된 아이템
+
+        const targetIndex = selectedArtifacts.findIndex(item => item.instanceId === targetInstanceId);
+        const currentIndex = selectedArtifacts.findIndex(item => item.instanceId === currentInstanceId);
+
+        if (targetIndex !== -1 && currentIndex !== -1) {
+            // 배열 내에서 아이템의 위치를 교환
+            const temp = selectedArtifacts[targetIndex];
+            selectedArtifacts[targetIndex] = selectedArtifacts[currentIndex];
+            selectedArtifacts[currentIndex] = temp;
+        }
+        selectedPriorityItemInstanceId = null; // 교환 후 선택 해제
+    }
+    updatePriorityList(); // UI 업데이트
 }
 
 
@@ -447,13 +558,13 @@ function isSlotAvailable(slotIndex, condition, currentGrid) {
 function calculateSlotBuffs() {
     const slotBuffs = new Array(maxSlots).fill(0);
 
-    currentGridItems.forEach((item, slotIndex) => {
-        if (item && item.id.startsWith('slate_') && item.buffcoords && item.buffcoords.length > 0) {
+    currentGridItems.forEach((itemInstance, slotIndex) => {
+        if (itemInstance && itemInstance.id.startsWith('slate_') && itemInstance.buffcoords && itemInstance.buffcoords.length > 0) {
             const baseRow = Math.floor(slotIndex / 6);
             const baseCol = slotIndex % 6;
-            const rotation = item.rotation || 0;
+            const rotation = itemInstance.rotation || 0;
 
-            item.buffcoords.forEach(buff => {
+            itemInstance.buffcoords.forEach(buff => {
                 let transformedX = buff.x || 0;
                 let transformedY = buff.y || 0;
 
@@ -519,24 +630,24 @@ function findSolution(itemIndex, currentGridState, allItemsToPlace, totalActiveS
         return true;
     }
 
-    const currentItem = allItemsToPlace[itemIndex];
-    const itemCondition = currentItem.condition && Array.isArray(currentItem.condition) && currentItem.condition.length > 0 ? currentItem.condition[0] : '';
+    const currentItemInstance = allItemsToPlace[itemIndex];
+    const itemCondition = currentItemInstance.condition && Array.isArray(currentItemInstance.condition) && currentItemInstance.condition.length > 0 ? currentItemInstance.condition[0] : '';
 
     for (let slotCandidateIndex = 0; slotCandidateIndex < totalActiveSlots; slotCandidateIndex++) {
         if (currentGridState[slotCandidateIndex] === null &&
             isSlotAvailable(slotCandidateIndex, itemCondition, currentGridState)) {
 
-            currentGridState[slotCandidateIndex] = currentItem;
+            currentGridState[slotCandidateIndex] = currentItemInstance;
 
-            if (currentItem.id.startsWith('slate_') && currentItem.rotatable) {
-                const originalRotation = currentItem.rotation;
+            if (currentItemInstance.id.startsWith('slate_') && currentItemInstance.rotatable) {
+                const originalRotation = currentItemInstance.rotation;
                 for (let rot = 0; rot < 360; rot += 90) {
-                    currentItem.rotation = rot;
+                    currentItemInstance.rotation = rot;
                     if (findSolution(itemIndex + 1, currentGridState, allItemsToPlace, totalActiveSlots)) {
                         return true;
                     }
                 }
-                currentItem.rotation = originalRotation;
+                currentItemInstance.rotation = originalRotation;
             } else {
                 if (findSolution(itemIndex + 1, currentGridState, allItemsToPlace, totalActiveSlots)) {
                     return true;
@@ -565,12 +676,8 @@ function autoArrange() {
       }
   }
 
-  let allItemsToPlace = [...selectedArtifacts]; // 아티팩트는 클릭 순서가 곧 우선순위
-  selectedSlates.forEach(slate => {
-      allItemsToPlace.push(slate);
-  });
+  let allItemsToPlace = [...selectedArtifacts, ...selectedSlates];
 
-  // ===== 아이템 정렬 기준 강화 (휴리스틱) =====
   allItemsToPlace.sort((a, b) => {
     const conditionA = a.condition && Array.isArray(a.condition) && a.condition.length > 0 ? a.condition[0] : '';
     const conditionB = b.condition && Array.isArray(b.condition) && b.condition.length > 0 ? b.condition[0] : '';
@@ -599,26 +706,24 @@ function autoArrange() {
     }
 
     if (a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
-        const orderA = selectedArtifacts.findIndex(item => item.id === a.id);
-        const orderB = selectedArtifacts.findIndex(item => item.id === b.id);
+        const orderA = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === a.instanceId);
+        const orderB = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === b.instanceId);
         return orderA - orderB;
     }
     return 0;
   });
-  // ======================================
 
   if (findSolution(0, tempGridForArrangement, allItemsToPlace, currentSlotsCount)) {
       console.log("모든 아이템 배치 성공!");
       currentGridItems = [...tempGridForArrangement];
 
-      selectedArtifacts.forEach(item => {
-          const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.id === item.id);
+      selectedArtifacts.forEach(itemInstance => {
+          const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
           if (itemInGrid) {
               itemInGrid.level = itemInGrid.maxUpgrade;
-              item.level = item.maxUpgrade;
+              itemInstance.level = itemInstance.maxUpgrade;
           }
       });
-      renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
   } else {
       console.log("모든 아이템을 배치할 수 없습니다.");
       alert("모든 아이템을 그리드에 배치할 수 없습니다. 슬롯 수를 늘리거나 조건을 재조정해보세요.");
@@ -629,30 +734,24 @@ function autoArrange() {
 
 /**
  * 석판을 90도 회전시키고, 해당 슬롯 및 주변 슬롯의 UI를 업데이트합니다.
- * @param {object} item - 회전할 석판 아이템 객체.
+ * @param {object} itemInstance - 회전할 석판 아이템 인스턴스 객체 (instanceId 포함).
  * @param {number} slotIndex - 석판이 위치한 슬롯의 인덱스.
  */
-function handleRotation(item, slotIndex) {
-    // slates.json의 rotatable 필드를 따르도록 변경
-    if (!item.rotatable) return;
+function handleRotation(itemInstance, slotIndex) {
+    if (!itemInstance.rotatable) return;
 
-    item.rotation = (item.rotation || 0) + 90;
-    if (item.rotation >= 360) {
-        item.rotation = 0;
+    itemInstance.rotation = (itemInstance.rotation || 0) + 90;
+    if (itemInstance.rotation >= 360) {
+        itemInstance.rotation = 0;
     }
 
-    const itemInGrid = currentGridItems[slotIndex];
+    const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
     if (itemInGrid) {
-        itemInGrid.rotation = item.rotation;
+        itemInGrid.rotation = itemInstance.rotation;
     }
-    const itemInSelectedList = selectedSlates.find(sItem => sItem.id === item.id);
+    const itemInSelectedList = selectedSlates.find(sItem => sItem.instanceId === itemInstance.instanceId);
     if (itemInSelectedList) {
-        itemInSelectedList.rotation = item.rotation;
-    }
-
-    const slotElement = document.querySelector(`.slot[data-index="${slotIndex}"]`);
-    if (slotElement) {
-        renderItemInSlot(slotElement, item);
+        itemInSelectedList.rotation = itemInstance.rotation;
     }
 
     updateAllSlotsUI();
@@ -700,7 +799,7 @@ document.addEventListener('keydown', (e) => {
         if (hoveredSlotIndex !== -1) {
             const itemInSlot = currentGridItems[hoveredSlotIndex];
             if (itemInSlot && itemInSlot.id.startsWith('slate_') && itemInSlot.rotatable) {
-                e.preventDefault(); // R키 기본 동작(새로고침 등) 방지
+                e.preventDefault();
                 handleRotation(itemInSlot, hoveredSlotIndex);
             }
         }
@@ -745,12 +844,9 @@ async function loadData() {
     } else if (!Array.isArray(item.condition)) {
         item.condition = [];
     }
-    // slates.json의 rotatable 필드를 따름. 필드가 없으면 false.
-    // (slates.json에서 rotatable 필드 존재 확인)
-    if (item.rotatable === undefined) { // slates.json에 rotatable 필드가 없는 경우
-        item.rotatable = false; // 기본값 false로 설정
+    if (item.rotatable === undefined) {
+        item.rotatable = false;
     }
-    item.rotation = 0;
   });
 
 
