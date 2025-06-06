@@ -1,8 +1,5 @@
 /** script.js **/
 
-// ==========================
-// 전역 변수 선언 (파일 시작 부분)
-// ==========================
 const baseSlots = 30;
 const maxSlots = 39;
 const grid = document.getElementById('main-grid');
@@ -13,8 +10,6 @@ const tabSlates = document.getElementById('tab-slates');
 const selectedArtifactsEl = document.getElementById('selected-artifacts');
 const selectedSlatesEl = document.getElementById('selected-slates');
 const priorityList = document.getElementById('priority-list');
-// autoArrangeBtn 선언을 여기로 옮깁니다.
-const autoArrangeBtn = document.getElementById('auto-arrange-btn');
 
 const itemSearchInput = document.getElementById('item-search');
 const tagFiltersContainer = document.getElementById('tag-filters');
@@ -619,24 +614,91 @@ function findSolution(itemIndex, currentGridState, allItemsToPlace, totalActiveS
     return false;
 }
 
-// script.js 내 autoArrange 함수 안 (수정될 코드)
+// getNumberOfAvailableSlots 함수 (autoArrange 함수 외부에 위치)
+function getNumberOfAvailableSlots(item, currentGrid, totalActiveSlots) {
+    let count = 0;
+    const itemCondition = item.condition && Array.isArray(item.condition) && item.condition.length > 0 ? item.condition[0] : '';
+
+    for (let i = 0; i < totalActiveSlots; i++) {
+        if (currentGrid[i] === null && isSlotAvailable(i, itemCondition, currentGrid)) {
+            count++;
+        }
+    }
+    return count;
+}
+
 function autoArrange() {
-  // ... (생략) ...
+  const currentSlotsCount = calculateSlots();
+  const allSlotsElements = [...document.querySelectorAll('.slot')];
+
+  allSlotsElements.forEach(slot => {
+    slot.innerHTML = ``;
+    slot.classList.remove('disabled');
+  });
+  const tempGridForArrangement = new Array(maxSlots).fill(null); // tempGridForArrangement 선언을 이리로 옮김
+
+  for (let i = 0; i < maxSlots; i++) {
+      if (i >= currentSlotsCount) {
+          allSlotsElements[i].classList.add('disabled');
+      }
+  }
+
+  let allItemsToPlace = [...selectedArtifacts, ...selectedSlates];
+
+  allItemsToPlace.sort((a, b) => {
+    const conditionA = a.condition && Array.isArray(a.condition) && a.condition.length > 0 ? a.condition[0] : '';
+    const conditionB = b.condition && Array.isArray(b.condition) && b.condition.length > 0 ? b.condition[0] : '';
+
+    const conditionPriority = {
+        "양쪽칸이 공백": 5,
+        "안쪽": 4,
+        "최상단": 3,
+        "최하단": 3,
+        "가장자리": 2,
+        "": 1
+    };
+
+    const priorityA = conditionPriority[conditionA] || 0;
+    const priorityB = conditionPriority[conditionB] || 0;
+
+    if (priorityA !== priorityB) {
+        return priorityB - priorityA;
+    }
+
+    if (a.id.startsWith('aritifact_') && !b.id.startsWith('aritifact_')) {
+        return -1;
+    }
+    if (!a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
+        return 1;
+    }
+
+    if (a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
+        const orderA = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === a.instanceId);
+        const orderB = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === b.instanceId);
+        return orderA - orderB;
+    }
+
+    const availableSlotsForA = getNumberOfAvailableSlots(a, tempGridForArrangement, currentSlotsCount);
+    const availableSlotsForB = getNumberOfAvailableSlots(b, tempGridForArrangement, currentSlotsCount);
+    
+    if (availableSlotsForA !== availableSlotsForB) {
+        return availableSlotsForA - availableSlotsForB;
+    }
+    
+    return 0;
+  });
 
   if (findSolution(0, tempGridForArrangement, allItemsToPlace, currentSlotsCount)) {
       console.log("모든 아이템 배치 성공!");
       currentGridItems = [...tempGridForArrangement];
 
-      // !!! 이 부분 (selectedArtifacts.forEach 루프)을 다시 추가합니다. !!!
-      // 배치 완료 후 아티팩트 레벨을 maxUpgrade까지 강화
       selectedArtifacts.forEach(itemInstance => {
           const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
           if (itemInGrid) {
-              itemInGrid.level = itemInGrid.maxUpgrade; // 그리드 내 아이템 인스턴스 강화
-              itemInstance.level = itemInstance.maxUpgrade; // selectedArtifacts 목록 내 인스턴스 강화
+              itemInGrid.level = itemInGrid.maxUpgrade;
+              itemInstance.level = itemInstance.maxUpgrade;
           }
       });
-      // -------------------------------------------------------------
   } else {
       console.log("모든 아이템을 배치할 수 없습니다.");
       alert("모든 아이템을 그리드에 배치할 수 없습니다. 슬롯 수를 늘리거나 조건을 재조정해보세요.");
@@ -644,7 +706,6 @@ function autoArrange() {
 
   updateAllSlotsUI();
 }
-
 
 /**
  * 석판을 90도 회전시키고, 해당 슬롯 및 주변 슬롯의 UI를 업데이트합니다.
@@ -703,8 +764,15 @@ checkboxes.forEach(chk => {
   });
 });
 
-// autoArrangeBtn 이벤트 리스너: autoArrangeBtn 변수가 정의된 후 추가되어야 합니다.
-// 이 코드를 파일 하단으로 옮겨 loadData() 이후에 실행되도록 변경했습니다.
+document.addEventListener('DOMContentLoaded', () => {
+    // autoArrangeBtn은 전역 상수이므로, DOMContentLoaded 이후에 접근 가능합니다.
+    // HTML에 id="auto-arrange-btn"이 있다면 정상적으로 할당됩니다.
+    if (autoArrangeBtn) { // autoArrangeBtn이 null이 아닌지 다시 한번 확인
+        autoArrangeBtn.addEventListener('click', autoArrange);
+    } else {
+        console.error("Error: autoArrangeBtn element not found in HTML. Check its ID.");
+    }
+});
 
 
 itemSearchInput.addEventListener('input', applyFilterAndRenderList);
@@ -748,6 +816,8 @@ async function loadData() {
     } else if (!Array.isArray(item.condition)) {
         item.condition = [];
     }
+
+    item.tags.forEach(tag => allTags.add(tag));
   });
 
   slates.forEach(item => {
@@ -769,17 +839,5 @@ async function loadData() {
   generateTagFilters();
   applyFilterAndRenderList();
 }
-
-// 초기화 함수들이 모두 호출된 후, autoArrangeBtn에 이벤트 리스너를 추가합니다.
-// 이렇게 하면 DOM 요소들이 모두 로드된 상태에서 안전하게 접근할 수 있습니다.
-document.addEventListener('DOMContentLoaded', () => {
-    // autoArrangeBtn은 전역 상수이므로, DOMContentLoaded 이후에 접근 가능합니다.
-    // HTML에 id="auto-arrange-btn"이 있다면 정상적으로 할당됩니다.
-    if (autoArrangeBtn) { // autoArrangeBtn이 null이 아닌지 다시 한번 확인
-        autoArrangeBtn.addEventListener('click', autoArrange);
-    } else {
-        console.error("Error: autoArrangeBtn element not found in HTML. Check its ID.");
-    }
-});
 
 loadData();
