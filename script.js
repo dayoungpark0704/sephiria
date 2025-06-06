@@ -167,7 +167,6 @@ function renderItemInSlot(slotElement, item) {
                 <div class="item-level ${levelColorClass}">★${displayLevel}/${item.maxUpgrade}</div>
             </div>
             ${additionalUpgrade > 0 ? `<div class="slot-buff-indicator">+${additionalUpgrade}</div>` : ''}
-            ${item.rotatable ? `<button class="rotate-button" data-slot-index="${slotIndex}">&#x21BB;</button>` : ''}
         </div>
     `;
 
