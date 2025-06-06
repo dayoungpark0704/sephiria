@@ -1,5 +1,8 @@
 /** script.js **/
 
+// ==========================
+// 전역 변수 선언 (파일 시작 부분)
+// ==========================
 const baseSlots = 30;
 const maxSlots = 39;
 const grid = document.getElementById('main-grid');
@@ -10,6 +13,8 @@ const tabSlates = document.getElementById('tab-slates');
 const selectedArtifactsEl = document.getElementById('selected-artifacts');
 const selectedSlatesEl = document.getElementById('selected-slates');
 const priorityList = document.getElementById('priority-list');
+// autoArrangeBtn 선언을 여기로 옮깁니다.
+const autoArrangeBtn = document.getElementById('auto-arrange-btn');
 
 const itemSearchInput = document.getElementById('item-search');
 const tagFiltersContainer = document.getElementById('tag-filters');
@@ -744,7 +749,9 @@ checkboxes.forEach(chk => {
   });
 });
 
-autoArrangeBtn.addEventListener('click', autoArrange);
+// autoArrangeBtn 이벤트 리스너: autoArrangeBtn 변수가 정의된 후 추가되어야 합니다.
+// 이 코드를 파일 하단으로 옮겨 loadData() 이후에 실행되도록 변경했습니다.
+
 
 itemSearchInput.addEventListener('input', applyFilterAndRenderList);
 
@@ -787,8 +794,6 @@ async function loadData() {
     } else if (!Array.isArray(item.condition)) {
         item.condition = [];
     }
-
-    item.tags.forEach(tag => allTags.add(tag)); // 모든 아티팩트 태그 수집
   });
 
   slates.forEach(item => {
@@ -810,5 +815,17 @@ async function loadData() {
   generateTagFilters();
   applyFilterAndRenderList();
 }
+
+// 초기화 함수들이 모두 호출된 후, autoArrangeBtn에 이벤트 리스너를 추가합니다.
+// 이렇게 하면 DOM 요소들이 모두 로드된 상태에서 안전하게 접근할 수 있습니다.
+document.addEventListener('DOMContentLoaded', () => {
+    // autoArrangeBtn은 전역 상수이므로, DOMContentLoaded 이후에 접근 가능합니다.
+    // HTML에 id="auto-arrange-btn"이 있다면 정상적으로 할당됩니다.
+    if (autoArrangeBtn) { // autoArrangeBtn이 null이 아닌지 다시 한번 확인
+        autoArrangeBtn.addEventListener('click', autoArrange);
+    } else {
+        console.error("Error: autoArrangeBtn element not found in HTML. Check its ID.");
+    }
+});
 
 loadData();
