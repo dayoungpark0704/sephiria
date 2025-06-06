@@ -1,49 +1,508 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>세피리아 아이템 정리기</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="layout">
-    <div class="main-body">
-      <div class="left-pane">
-        <div class="top-controls"> <strong>🎛 슬롯 설정:</strong>
-          <label><input type="checkbox" class="option" value="6" checked> 여우(+6)</label>
-          <label><input type="checkbox" class="option" value="3" checked> 생존10(+3)</label>
-          <label><input type="checkbox" class="option" value="-12"> 생존20(-12)</label>
-        </div>
+body {
+  background-color: #111;
+  color: #fff;
+  font-family: sans-serif;
+  padding: 20px;
+}
 
-        <h4>슬롯 격자 미리보기 </h4>
-        <div class="grid" id="main-grid"></div>
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
-        <button id="auto-arrange-btn">🔄 자동 배치</button>
-      </div>
+/* top-controls가 left-pane 안으로 이동하면서 필요한 조정 */
+.top-controls {
+  border: 1px solid #444;
+  background-color: #1a1a1a;
+  padding: 10px;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
 
-      <div class="right-pane">
-        <div class="item-tab">
-          <button id="tab-artifacts" class="active">🧿 아티팩트</button>
-          <button id="tab-slates">📜 석판</button>
-        </div>
-        <div class="search-filter-area">
-            <input type="text" id="item-search" placeholder="아이템 이름 또는 태그 검색" />
-            <div id="tag-filters"></div>
-        </div>
-        <div class="item-list" id="item-list"></div>
+.top-controls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
 
-        <h4>✅ 선택된 아티팩트</h4>
-        <div id="selected-artifacts" class="selection-list"></div>
+.main-body {
+  display: flex;
+  gap: 1rem;
+}
 
-        <h4>✅ 선택된 석판</h4>
-        <div id="selected-slates" class="selection-list"></div>
+.left-pane {
+  flex: 1;
+  border: 1px solid #444;
+  padding: 10px;
+  background-color: #181818;
+  display: flex;
+  flex-direction: column;
+}
 
-        <h4>🔢 아티팩트 배치 우선순위 (클릭 순서)</h4>
-        <div id="priority-list" class="priority-list"></div>
-      </div>
-    </div>
-    </div>
+.right-pane {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid #444;
+  padding: 10px;
+  background-color: #202020;
+}
 
-  <script src="script.js"></script>
-</body>
-</html>
+.item-tab {
+  margin-bottom: 10px;
+}
+
+.item-tab button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  cursor: pointer;
+  margin-right: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.item-tab button:hover {
+  background-color: #444;
+}
+
+.item-tab button.active {
+  background-color: #555;
+  font-weight: bold;
+}
+
+/* 검색 및 필터링 영역 */
+.search-filter-area {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#item-search {
+  width: calc(100% - 20px);
+  padding: 8px 10px;
+  border: 1px solid #555;
+  background-color: #2a2a2a;
+  color: #fff;
+  border-radius: 4px;
+}
+
+#tag-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.tag-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background-color 0.2s;
+}
+
+.tag-button:hover {
+  background-color: #45a049;
+}
+
+.tag-button.active {
+  background-color: #007bff;
+}
+
+
+.item-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 400px; /* 초기 높이 설정, 나중에 flex-grow와 함께 작동 */
+  overflow-y: auto;
+  border: 1px solid #444;
+  padding: 10px;
+  background-color: #121212;
+  flex-grow: 1; /* 남은 공간 차지 */
+}
+
+.item {
+  width: 70px;
+  height: 80px;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  transition: all 0.1s ease-in-out;
+}
+
+.item:hover {
+  background-color: #2a2a2a;
+  border-color: #777;
+}
+
+.item img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.item div {
+  font-size: 0.8em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.item.selected {
+  outline: 2px solid #00bfff;
+  background-color: #333;
+}
+
+.selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #444;
+  padding: 10px;
+  background-color: #1a1a1a;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.selection-list .item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background-color: #222;
+  border: 1px solid #555;
+  font-size: 14px;
+  position: relative;
+  width: auto;
+  height: auto;
+}
+
+.selection-list .item img {
+  width: 40px;
+  height: 40px;
+}
+
+.selection-list .tags {
+  color: #999;
+  font-size: 0.85em;
+}
+
+.selection-list .controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.selection-list .controls button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 3px;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.selection-list .controls button:hover {
+  background-color: #0056b3;
+}
+
+.selection-list .controls span {
+  font-weight: bold;
+  min-width: 50px;
+  text-align: center;
+}
+
+.selection-list .item .remove-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 0.9em;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  opacity: 0.8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.selection-list .item .remove-btn:hover {
+  opacity: 1;
+  background-color: #c82333;
+}
+
+/* 우선순위 목록 스타일 */
+.priority-list {
+  display: flex;
+  flex-direction: row; /* 아이템을 가로로 나열 */
+  flex-wrap: wrap; /* 공간 부족 시 다음 줄로 넘김 */
+  gap: 10px; /* 아이템 간 간격 */
+  padding: 10px;
+  overflow-x: auto; /* 가로 스크롤 허용 (필요 시) */
+  white-space: nowrap; /* 기본적으로 줄바꿈 방지 */
+  background-color: #111;
+  border: 1px solid #333;
+  min-height: 40px; /* 최소 높이 */
+  align-items: flex-start; /* 아이템 상단 정렬 */
+}
+
+/* 우선순위 목록 내 각 아이템 (div.priority-item) 스타일 */
+.priority-list .priority-item {
+  background-color: #333;
+  border: 1px solid #555;
+  padding: 5px; /* 패딩 조정 */
+  border-radius: 4px;
+  font-size: 0.9em;
+  transition: background-color 0.2s, transform 0.1s;
+  flex-shrink: 0; /* 아이템이 줄어들지 않도록 */
+  position: relative; /* 순서 번호 위치를 위해 */
+  display: flex; /* 내부 요소 정렬 */
+  flex-direction: column; /* 이미지와 번호 세로로 */
+  align-items: center; /* 가운데 정렬 */
+  justify-content: center;
+  width: 60px; /* 고정 너비 */
+  height: 70px; /* 고정 높이 */
+  cursor: pointer; /* 클릭 가능 표시 */
+}
+
+.priority-list .priority-item:hover {
+  background-color: #444;
+  transform: translateY(-1px);
+}
+
+/* 우선순위 목록에서 선택된 아이템 스타일 */
+.priority-list .priority-item.selected {
+  background-color: #00ff00; /* 초록색 배경 */
+  border-color: #00ff00;
+  color: #111; /* 글씨색 조정 */
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); /* 그림자 효과 */
+}
+.priority-list .priority-item.selected .order-number {
+  color: #111; /* 초록색 배경에 맞춰 번호 색상 조정 */
+  background-color: #fff; /* 번호 배경도 흰색으로 */
+}
+
+
+/* 우선순위 아이템 내 순서 번호 스타일 */
+.priority-list .priority-item .order-number {
+    position: absolute;
+    top: -8px; /* 위로 살짝 올림 */
+    left: -8px; /* 왼쪽으로 살짝 옮김 */
+    background-color: #007bff; /* 파란색 배경 (기본) */
+    color: white;
+    font-size: 0.6em;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%; /* 원형 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    z-index: 1; /* 아이템 위에 표시 */
+    border: 1px solid #555; /* 작은 테두리 추가 */
+}
+
+/* 우선순위 아이템 내 이미지 스타일 */
+.priority-list .priority-item img {
+    width: 30px; /* 아이콘 크기 */
+    height: 30px;
+    object-fit: contain;
+    margin-bottom: 5px; /* 번호와의 간격 */
+}
+
+/* 슬롯 격자 스타일 */
+.grid {
+  display: grid;
+  /* grid-template-columns: repeat(6, 90px); */
+  grid-template-columns: repeat(6, 100px); /* 6개의 열, 각 열의 너비를 100px로 조정 */
+  gap: 5px;
+  margin-bottom: 1rem;
+}
+
+.slot {
+  background-color: #333;
+  border: 1px solid #666;
+  /* width: 90px; */
+  /* height: 90px; */
+  width: 100px;  /* 슬롯 너비를 100px로 조정 */
+  height: 100px; /* 슬롯 높이를 100px로 조정 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  /* font-size: 10px; <- 이 부분은 아래에서 개별 폰트 크기로 조정할 것이므로 여기서 크게 중요하지 않습니다. */
+  text-align: center;
+  position: relative;
+  border-radius: 4px;
+  transition: all 0.1s ease-in-out;
+}
+
+.slot.disabled {
+  background-color: #222;
+  opacity: 0.3;
+}
+
+.slot.drag-over {
+  background-color: #555;
+  border: 2px dashed #00bfff;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+.slot .name {
+  color: #888;
+  /* font-size: 0.9em; */ /* 빈 슬롯 텍스트 삭제로 인해 이 스타일은 이제 거의 사용되지 않습니다. */
+}
+
+/* 슬롯 내부 아이템 정보 레이아웃 조정 */
+.slot .item-in-slot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    box-sizing: border-box;
+    background-color: #444;
+    border-radius: 3px;
+}
+
+.slot .item-in-slot .item-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    width: 100%;
+}
+
+.slot .item-in-slot img {
+  /* max-width: 70px; */
+  /* max-height: 70px; */
+  max-width: 80px;  /* 이미지 최대 너비를 80px로 조정 */
+  max-height: 80px; /* 이미지 최대 높이를 80px로 조정 */
+  object-fit: contain;
+  transition: transform 0.3s ease-out; /* 회전 애니메이션 */
+}
+
+/* 회전 상태에 따른 이미지 회전 */
+.slot .item-in-slot img.rotate-90 { transform: rotate(90deg); }
+.slot .item-in-slot img.rotate-180 { transform: rotate(180deg); }
+.slot .item-in-slot img.rotate-270 { transform: rotate(270deg); }
+
+.slot .item-in-slot .item-name {
+    /* font-size: 0.85em; */
+    font-size: 0.95em; /* 이름 폰트 크기 증가 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+    color: #eee;
+    margin-bottom: 2px;
+}
+
+.slot .item-in-slot .item-level {
+    /* font-size: 0.75em; */
+    font-size: 0.85em; /* 레벨 폰트 크기 증가 */
+    color: #ccc;
+    font-weight: bold;
+}
+
+.slot .item-in-slot .item-level.level-maxed {
+    color: #00ff00;
+}
+
+/* 슬롯 오른쪽 위에 추가 강화 수치 표시 */
+.slot-buff-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #00ff00; /* 초록색 글씨 */
+  /* font-size: 0.7em; */
+  font-size: 0.8em; /* 버프 표시 폰트 크기 증가 */
+  font-weight: bold;
+  z-index: 10;
+}
+
+/* 일반 버튼 스타일 */
+button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  cursor: pointer;
+  margin-top: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* 스크롤바 스타일 */
+.item-list, .selection-list, .priority-list {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #555 #333; /* Firefox */
+}
+
+/* Chrome, Edge, Safari */
+.item-list::-webkit-scrollbar,
+.selection-list::-webkit-scrollbar,
+.priority-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.item-list::-webkit-scrollbar-track,
+.selection-list::-webkit-scrollbar-track,
+.priority-list::-webkit-scrollbar-track {
+  background: #333;
+}
+
+.item-list::-webkit-scrollbar-thumb,
+.selection-list::-webkit-scrollbar-thumb,
+.priority-list::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
