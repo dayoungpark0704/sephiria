@@ -25,6 +25,8 @@ let allTags = new Set();
 let nextInstanceId = 0;
 let hoveredSlotIndex = -1;
 
+let selectedPriorityItemInstanceId = null;
+
 // ==========================
 // 슬롯 관련 함수
 // ==========================
@@ -41,14 +43,12 @@ function createSlot(index) {
     hoveredSlotIndex = -1;
   });
 
-  // 슬롯 우클릭으로 아이템 제거 기능 추가
   slot.addEventListener('contextmenu', e => {
     e.preventDefault();
 
     const itemInSlot = currentGridItems[index];
     if (itemInSlot) {
       currentGridItems[index] = null;
-      // 빈 슬롯 텍스트 삭제로 인해 이 부분도 빈 문자열로
       document.querySelector(`.slot[data-index="${index}"]`).innerHTML = ``; 
 
       const list = itemInSlot.id.startsWith('aritifact_') ? selectedArtifacts : selectedSlates;
@@ -135,12 +135,10 @@ function createSlot(index) {
     if (sourceSlotIndex !== "") {
         const srcIndex = parseInt(sourceSlotIndex);
         currentGridItems[srcIndex] = null;
-        // 빈 슬롯 텍스트 삭제로 인해 이 부분도 빈 문자열로
         document.querySelector(`.slot[data-index="${srcIndex}"]`).innerHTML = ``;
     } else {
         if (itemAtTarget) {
             currentGridItems[targetIndex] = null;
-            // 빈 슬롯 텍스트 삭제로 인해 이 부분도 빈 문자열로
             document.querySelector(`.slot[data-index="${targetIndex}"]`).innerHTML = ``;
         }
     }
@@ -248,7 +246,6 @@ function renderItemList(itemsToRender, isArtifact = true) {
     const div = document.createElement('div');
     div.className = 'item';
     
-    // 원본 아이템이 선택된 목록에 하나라도 포함되어 있으면 'selected' 클래스 부여
     if (currentSelectedList.some(selectedItemInstance => selectedItemInstance.id === originalItem.id)) {
       div.classList.add('selected');
     }
@@ -263,31 +260,29 @@ function renderItemList(itemsToRender, isArtifact = true) {
       } else {
         addSlateInstance(originalItem, selectedSlates, selectedSlatesEl, false);
       }
-      applyFilterAndRenderList(); // 원본 아이템 목록 UI 업데이트 (selected 클래스 갱신)
-      updatePriorityList(); // 우선순위 목록 업데이트
+      applyFilterAndRenderList();
+      updatePriorityList();
     });
     itemList.appendChild(div);
   });
 }
 
-// 아티팩트 인스턴스 추가 로직 (클릭 순서 우선순위 부여)
 function addArtifactInstance(originalItem, selectedList, container, isArtifact) {
     const newItemInstance = {
         ...originalItem,
-        level: 0, // 초기 레벨 0
-        instanceId: `instance_${nextInstanceId++}` // 고유 instanceId 부여
+        level: 0,
+        instanceId: `instance_${nextInstanceId++}`
     };
-    selectedList.push(newItemInstance); // 항상 마지막에 추가하여 클릭 순서 유지
+    selectedList.push(newItemInstance);
     renderSelectedItems(selectedList, container, isArtifact);
 }
 
-// 석판 인스턴스 추가 로직
 function addSlateInstance(originalItem, selectedList, container, isArtifact) {
     const newItemInstance = {
         ...originalItem,
         level: 0,
-        rotation: 0, // 초기 회전 0
-        instanceId: `instance_${nextInstanceId++}` // 고유 instanceId 부여
+        rotation: 0,
+        instanceId: `instance_${nextInstanceId++}`
     };
     selectedList.push(newItemInstance);
     renderSelectedItems(selectedList, container, isArtifact);
@@ -364,14 +359,13 @@ function removeItemFromSelection(instanceId, isArtifact) {
     const slotIndexToRemove = currentGridItems.findIndex(itemInstance => itemInstance && itemInstance.instanceId === instanceId);
     if (slotIndexToRemove !== -1) {
         currentGridItems[slotIndexToRemove] = null;
-        // 빈 슬롯 텍스트 삭제로 인해 이 부분도 빈 문자열로
         document.querySelector(`.slot[data-index="${slotIndexToRemove}"]`).innerHTML = ``;
     }
 
-    applyFilterAndRenderList(); // 원본 목록의 selected 클래스 업데이트
-    updatePriorityList(); // 아티팩트 우선순위 목록 업데이트
+    applyFilterAndRenderList();
+    updatePriorityList();
 
-    updateAllSlotsUI(); // 그리드 UI 업데이트
+    updateAllSlotsUI();
 }
 
 
@@ -379,7 +373,6 @@ function removeItemFromSelection(instanceId, isArtifact) {
 // 우선순위 목록 (클릭 순서로)
 // ==========================
 
-// 우선순위 아이템을 특정 위치로 이동시키는 함수
 function movePriorityItemToIndex(instanceId, targetIndex) {
     const currentInstance = selectedArtifacts.find(item => item.instanceId === instanceId);
     if (!currentInstance) return;
@@ -387,12 +380,11 @@ function movePriorityItemToIndex(instanceId, targetIndex) {
     const oldIndex = selectedArtifacts.indexOf(currentInstance);
     if (oldIndex === -1) return;
 
-    // 배열에서 해당 아이템을 제거하고, 새로운 위치에 삽입
     selectedArtifacts.splice(oldIndex, 1);
     selectedArtifacts.splice(targetIndex, 0, currentInstance);
 
-    selectedPriorityItemInstanceId = null; // 순서 변경 후 선택 해제
-    updatePriorityList(); // UI 업데이트
+    selectedPriorityItemInstanceId = null;
+    updatePriorityList();
 }
 
 
@@ -404,47 +396,35 @@ function updatePriorityList() {
     div.dataset.id = itemInstance.id;
     div.dataset.instanceId = itemInstance.instanceId;
 
-    // 이미지 아이콘 추가
     const img = document.createElement('img');
     img.src = `images/${itemInstance.icon}`;
     img.alt = itemInstance.name;
-    img.style.width = '30px'; // 아이콘 크기
+    img.style.width = '30px';
     img.style.height = '30px';
-    // img.style.marginBottom = '5px'; // 번호와의 간격은 CSS로
-
     div.appendChild(img);
 
-    // 순서 번호 추가
     const orderNumberSpan = document.createElement('span');
     orderNumberSpan.className = 'order-number';
     orderNumberSpan.textContent = index + 1;
     div.appendChild(orderNumberSpan);
 
-    // 클릭 이벤트 리스너 추가 (순서 변경)
     div.addEventListener('click', (e) => {
-        // e.stopPropagation(); // 이벤트 버블링 방지 (필요 시)
-
-        // 클릭된 우선순위 아이템 인스턴스
         const clickedItemInstanceId = e.currentTarget.dataset.instanceId;
 
         if (selectedPriorityItemInstanceId === null) {
-            // 아무것도 선택 안된 상태에서 클릭: 클릭된 아이템을 '선택' 상태로 변경
             selectedPriorityItemInstanceId = clickedItemInstanceId;
         } else if (selectedPriorityItemInstanceId === clickedItemInstanceId) {
-            // 이미 선택된 아이템을 다시 클릭: '선택' 해제
             selectedPriorityItemInstanceId = null;
         } else {
-            // 다른 아이템을 클릭: 이전에 선택된 아이템과 위치 교환
             const targetInstanceId = selectedPriorityItemInstanceId;
             const currentIndex = selectedArtifacts.findIndex(item => item.instanceId === clickedItemInstanceId);
             
-            movePriorityItemToIndex(targetInstanceId, currentIndex); // 이전에 선택된 아이템을 현재 클릭된 위치로 이동
-            selectedPriorityItemInstanceId = null; // 교환 후 선택 해제
+            movePriorityItemToIndex(targetInstanceId, currentIndex);
+            selectedPriorityItemInstanceId = null;
         }
-        updatePriorityList(); // UI 업데이트 (선택 효과 및 순서 반영)
+        updatePriorityList();
     });
     
-    // 현재 선택된 아이템이라면 'selected' 클래스 추가하여 초록색 배경 적용
     if (selectedPriorityItemInstanceId === itemInstance.instanceId) {
         div.classList.add('selected');
     }
@@ -491,7 +471,6 @@ function applyFilterAndRenderList() {
     if (currentActiveTab === 'artifacts') {
         filteredItems = artifacts.filter(item => {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
-            // tags는 배열이므로 .some()을 사용하여 필터링
             const tagMatch = activeTags.size === 0 || item.tags.some(tag => activeTags.has(tag));
             return nameMatch && tagMatch;
         });
@@ -499,8 +478,7 @@ function applyFilterAndRenderList() {
     } else {
         filteredItems = slates.filter(item => {
             const nameMatch = item.name.toLowerCase().includes(searchTerm);
-            // 석판에는 tags 필드가 없으므로, 태그 필터는 항상 true (모두 표시)
-            const tagMatch = true; 
+            const tagMatch = true;
             return nameMatch && tagMatch;
         });
         renderItemList(filteredItems, false);
@@ -642,7 +620,7 @@ function autoArrange() {
   const allSlotsElements = [...document.querySelectorAll('.slot')];
 
   allSlotsElements.forEach(slot => {
-    slot.innerHTML = ``; // 빈 슬롯 텍스트 삭제
+    slot.innerHTML = ``;
     slot.classList.remove('disabled');
   });
   const tempGridForArrangement = new Array(maxSlots).fill(null);
@@ -770,7 +748,6 @@ autoArrangeBtn.addEventListener('click', autoArrange);
 
 itemSearchInput.addEventListener('input', applyFilterAndRenderList);
 
-// R키 회전을 위한 키보드 이벤트 리스너
 document.addEventListener('keydown', (e) => {
     if (e.key === 'r' || e.key === 'R') {
         if (hoveredSlotIndex !== -1) {
@@ -810,6 +787,8 @@ async function loadData() {
     } else if (!Array.isArray(item.condition)) {
         item.condition = [];
     }
+
+    item.tags.forEach(tag => allTags.add(tag)); // 모든 아티팩트 태그 수집
   });
 
   slates.forEach(item => {
