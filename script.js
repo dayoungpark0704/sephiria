@@ -43,6 +43,7 @@ function createSlot(index) {
     hoveredSlotIndex = -1;
   });
 
+  // 슬롯 우클릭으로 아이템 제거 기능 추가
   slot.addEventListener('contextmenu', e => {
     e.preventDefault();
 
@@ -246,6 +247,8 @@ function renderItemList(itemsToRender, isArtifact = true) {
     const div = document.createElement('div');
     div.className = 'item';
     
+    // 이 아이템이 선택된 목록에 하나라도 포함되어 있으면 'selected' 클래스 부여
+    // 중복 선택 가능하므로, 이 클래스는 원본 아이템이 하나라도 선택되었음을 나타냄
     if (currentSelectedList.some(selectedItemInstance => selectedItemInstance.id === originalItem.id)) {
       div.classList.add('selected');
     }
@@ -254,14 +257,41 @@ function renderItemList(itemsToRender, isArtifact = true) {
       <img src="images/${originalItem.icon}" alt="${originalItem.name}" />
       <div>${originalItem.name}</div>
     `;
-    div.addEventListener('click', () => {
-      if (isArtifact) {
-        addArtifactInstance(originalItem, selectedArtifacts, selectedArtifactsEl, true);
-      } else {
-        addSlateInstance(originalItem, selectedSlates, selectedSlatesEl, false);
-      }
-      applyFilterAndRenderList();
-      updatePriorityList();
+    // 좌클릭으로 추가, 우클릭으로 제거 기능 구현
+    div.addEventListener('click', (e) => { // 좌클릭
+        if (isArtifact) {
+            addArtifactInstance(originalItem, selectedArtifacts, selectedArtifactsEl, true);
+        } else {
+            addSlateInstance(originalItem, selectedSlates, selectedSlatesEl, false);
+        }
+        applyFilterAndRenderList();
+        updatePriorityList();
+    });
+    div.addEventListener('contextmenu', (e) => { // 우클릭
+        e.preventDefault(); // 기본 컨텍스트 메뉴 방지
+        const list = isArtifact ? selectedArtifacts : selectedSlates;
+        // 선택된 아이템 목록에서 해당 ID를 가진 아이템 인스턴스 중 가장 최근에 추가된 것(마지막)을 제거
+        const indexToRemove = list.slice().reverse().findIndex(itemInstance => itemInstance.id === originalItem.id);
+        if (indexToRemove !== -1) {
+            const actualIndex = list.length - 1 - indexToRemove; // 원본 배열에서의 실제 인덱스
+            const removedItem = list.splice(actualIndex, 1)[0]; // 제거된 아이템 인스턴스
+
+            // 그리드에서 제거된 인스턴스와 일치하는 아이템이 있다면 제거
+            const slotIndexToRemove = currentGridItems.findIndex(itemInGrid => itemInGrid && itemInGrid.instanceId === removedItem.instanceId);
+            if (slotIndexToRemove !== -1) {
+                currentGridItems[slotIndexToRemove] = null;
+                document.querySelector(`.slot[data-index="${slotIndexToRemove}"]`).innerHTML = ``;
+            }
+
+            if (isArtifact) {
+                renderSelectedItems(selectedArtifacts, selectedArtifactsEl, true);
+                updatePriorityList();
+            } else {
+                renderSelectedItems(selectedSlates, selectedSlatesEl, false);
+            }
+            updateAllSlotsUI(); // 그리드 버프 업데이트
+        }
+        applyFilterAndRenderList(); // 원본 아이템 목록 UI (selected 클래스) 업데이트
     });
     itemList.appendChild(div);
   });
@@ -631,12 +661,14 @@ function autoArrange() {
   const currentSlotsCount = calculateSlots();
   const allSlotsElements = [...document.querySelectorAll('.slot')];
 
+  // tempGridForArrangement 선언을 autoArrange 함수의 맨 위로 옮김
+  const tempGridForArrangement = new Array(maxSlots).fill(null);
+
   allSlotsElements.forEach(slot => {
     slot.innerHTML = ``;
     slot.classList.remove('disabled');
   });
-  const tempGridForArrangement = new Array(maxSlots).fill(null); // tempGridForArrangement 선언을 이리로 옮김
-
+  
   for (let i = 0; i < maxSlots; i++) {
       if (i >= currentSlotsCount) {
           allSlotsElements[i].classList.add('disabled');
@@ -767,7 +799,8 @@ checkboxes.forEach(chk => {
 document.addEventListener('DOMContentLoaded', () => {
     // autoArrangeBtn은 전역 상수이므로, DOMContentLoaded 이후에 접근 가능합니다.
     // HTML에 id="auto-arrange-btn"이 있다면 정상적으로 할당됩니다.
-    if (autoArrangeBtn) { // autoArrangeBtn이 null이 아닌지 다시 한번 확인
+    const autoArrangeBtn = document.getElementById('auto-arrange-btn'); // DOMContentLoaded 내에서 다시 선언하여 안전하게 접근
+    if (autoArrangeBtn) {
         autoArrangeBtn.addEventListener('click', autoArrange);
     } else {
         console.error("Error: autoArrangeBtn element not found in HTML. Check its ID.");
