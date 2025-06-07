@@ -43,7 +43,6 @@ function createSlot(index) {
     hoveredSlotIndex = -1;
   });
 
-  // 슬롯 우클릭으로 아이템 제거 기능 추가
   slot.addEventListener('contextmenu', e => {
     e.preventDefault();
 
@@ -247,8 +246,6 @@ function renderItemList(itemsToRender, isArtifact = true) {
     const div = document.createElement('div');
     div.className = 'item';
     
-    // 이 아이템이 선택된 목록에 하나라도 포함되어 있으면 'selected' 클래스 부여
-    // 중복 선택 가능하므로, 이 클래스는 원본 아이템이 하나라도 선택되었음을 나타냄
     if (currentSelectedList.some(selectedItemInstance => selectedItemInstance.id === originalItem.id)) {
       div.classList.add('selected');
     }
@@ -257,17 +254,18 @@ function renderItemList(itemsToRender, isArtifact = true) {
       <img src="images/${originalItem.icon}" alt="${originalItem.name}" />
       <div>${originalItem.name}</div>
     `;
-    // 좌클릭으로 추가, 우클릭으로 제거 기능 구현
-    div.addEventListener('click', (e) => { // 좌클릭
-        if (isArtifact) {
-            addArtifactInstance(originalItem, selectedArtifacts, selectedArtifactsEl, true);
-        } else {
-            addSlateInstance(originalItem, selectedSlates, selectedSlatesEl, false);
+    div.addEventListener('click', (e) => { // 좌클릭으로 추가
+        if (e.button === 0) { // 좌클릭 (0은 기본값)
+            if (isArtifact) {
+                addArtifactInstance(originalItem, selectedArtifacts, selectedArtifactsEl, true);
+            } else {
+                addSlateInstance(originalItem, selectedSlates, selectedSlatesEl, false);
+            }
+            applyFilterAndRenderList();
+            updatePriorityList();
         }
-        applyFilterAndRenderList();
-        updatePriorityList();
     });
-    div.addEventListener('contextmenu', (e) => { // 우클릭
+    div.addEventListener('contextmenu', (e) => { // 우클릭으로 제거
         e.preventDefault(); // 기본 컨텍스트 메뉴 방지
         const list = isArtifact ? selectedArtifacts : selectedSlates;
         // 선택된 아이템 목록에서 해당 ID를 가진 아이템 인스턴스 중 가장 최근에 추가된 것(마지막)을 제거
