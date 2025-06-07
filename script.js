@@ -1,5 +1,8 @@
 /** script.js **/
 
+// ==========================
+// 전역 변수 선언
+// ==========================
 const baseSlots = 30;
 const maxSlots = 39;
 const grid = document.getElementById('main-grid');
@@ -154,7 +157,8 @@ function createSlot(index) {
 
 function renderItemInSlot(slotElement, item) {
     const slotIndex = parseInt(slotElement.dataset.index);
-    const slotBuffs = calculateSlotBuffs();
+    // calculateSlotBuffs 함수는 algorithms.js에서 가져옴
+    const slotBuffs = calculateSlotBuffs(currentGridItems, maxSlots, calculateSlots);
     const additionalUpgrade = slotBuffs[slotIndex] || 0;
 
     const displayLevel = (item.level || 0) + additionalUpgrade;
@@ -169,7 +173,8 @@ function renderItemInSlot(slotElement, item) {
     if (itemCondition) {
         const tempGridForCheck = [...currentGridItems];
         tempGridForCheck[slotIndex] = item;
-        isConditionMet = isSlotAvailable(slotIndex, itemCondition, tempGridForCheck);
+        // isSlotAvailable 함수는 algorithms.js에서 가져옴
+        isConditionMet = isSlotAvailable(slotIndex, itemCondition, tempGridForCheck, calculateSlots);
     } else {
         isConditionMet = true;
     }
@@ -722,7 +727,7 @@ function autoArrange() {
       console.log("모든 아이템 배치 성공!");
       currentGridItems = [...tempGridForArrangement];
 
-      // !!! 이 부분 (selectedArtifacts.forEach 루프)을 제거합니다. !!!
+      // 이 부분 (selectedArtifacts.forEach 루프)을 제거합니다.
       /*
       selectedArtifacts.forEach(itemInstance => {
           const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
@@ -732,7 +737,6 @@ function autoArrange() {
           }
       });
       */
-      // -------------------------------------------------------------
   } else {
       console.log("모든 아이템을 배치할 수 없습니다.");
       alert("모든 아이템을 그리드에 배치할 수 없습니다. 슬롯 수를 늘리거나 조건을 재조정해보세요.");
