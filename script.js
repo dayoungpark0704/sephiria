@@ -722,6 +722,8 @@ function autoArrange() {
       console.log("모든 아이템 배치 성공!");
       currentGridItems = [...tempGridForArrangement];
 
+      // !!! 이 부분 (selectedArtifacts.forEach 루프)을 제거합니다. !!!
+      /*
       selectedArtifacts.forEach(itemInstance => {
           const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
           if (itemInGrid) {
@@ -729,6 +731,8 @@ function autoArrange() {
               itemInstance.level = itemInstance.maxUpgrade;
           }
       });
+      */
+      // -------------------------------------------------------------
   } else {
       console.log("모든 아이템을 배치할 수 없습니다.");
       alert("모든 아이템을 그리드에 배치할 수 없습니다. 슬롯 수를 늘리거나 조건을 재조정해보세요.");
