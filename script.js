@@ -154,7 +154,8 @@ function createSlot(index) {
 
 function renderItemInSlot(slotElement, item) {
     const slotIndex = parseInt(slotElement.dataset.index);
-    const slotBuffs = calculateSlotBuffs();
+    // algorithms.js에서 calculateSlotBuffs 가져옴
+    const slotBuffs = calculateSlotBuffs(currentGridItems, maxSlots, calculateSlots);
     const additionalUpgrade = slotBuffs[slotIndex] || 0;
 
     const displayLevel = (item.level || 0) + additionalUpgrade;
@@ -169,7 +170,8 @@ function renderItemInSlot(slotElement, item) {
     if (itemCondition) {
         const tempGridForCheck = [...currentGridItems];
         tempGridForCheck[slotIndex] = item;
-        isConditionMet = isSlotAvailable(slotIndex, itemCondition, tempGridForCheck);
+        // algorithms.js에서 isSlotAvailable 가져옴
+        isConditionMet = isSlotAvailable(slotIndex, itemCondition, tempGridForCheck, calculateSlots);
     } else {
         isConditionMet = true;
     }
@@ -518,226 +520,87 @@ function applyFilterAndRenderList() {
 // 배치 알고리즘 (Condition 고려)
 // ==========================
 
-function isSlotAvailable(slotIndex, condition, currentGrid) {
-    const row = Math.floor(slotIndex / 6);
-    const col = slotIndex % 6;
-    const totalRows = Math.ceil(calculateSlots() / 6);
-    const totalCols = 6;
-
-    switch (condition) {
-        case "최상단": return row === 0;
-        case "최하단": return row === totalRows - 1;
-        case "가장자리": return row === 0 || row === totalRows - 1 || col === 0 || col === totalCols - 1;
-        case "안쪽": return row > 0 && row < totalRows - 1 && col > 0 && col < totalCols - 1;
-        case "양쪽칸이 공백":
-            const leftSlotIndex = slotIndex - 1;
-            const rightSlotIndex = slotIndex + 1;
-            const isLeftInBounds = (col > 0);
-            const isRightInBounds = (col < totalCols - 1);
-            const isLeftEmpty = !isLeftInBounds || currentGrid[leftSlotIndex] === null;
-            const isRightEmpty = !isRightInBounds || currentGrid[rightSlotIndex] === null;
-            return isLeftEmpty && isRightEmpty;
-        default: return true;
-    }
-}
-
-function calculateSlotBuffs() {
-    const slotBuffs = new Array(maxSlots).fill(0);
-
-    currentGridItems.forEach((itemInstance, slotIndex) => {
-        if (itemInstance && itemInstance.id.startsWith('slate_') && itemInstance.buffcoords && itemInstance.buffcoords.length > 0) {
-            const baseRow = Math.floor(slotIndex / 6);
-            const baseCol = slotIndex % 6;
-            const rotation = itemInstance.rotation || 0;
-
-            itemInstance.buffcoords.forEach(buff => {
-                let transformedX = buff.x || 0;
-                let transformedY = buff.y || 0;
-
-                if (rotation === 90) { [transformedX, transformedY] = [-transformedY, transformedX]; }
-                else if (rotation === 180) { [transformedX, transformedY] = [-transformedX, -transformedY]; }
-                else if (rotation === 270) { [transformedX, transformedY] = [transformedY, -transformedX]; }
-
-                const targetRow = baseRow + transformedY;
-                const targetCol = baseCol + transformedX;
-                const targetIndex = targetRow * 6 + targetCol;
-
-                const currentActiveSlotsCount = calculateSlots();
-                if (targetIndex >= 0 && targetIndex < currentActiveSlotsCount &&
-                    targetRow >= 0 && targetRow < Math.ceil(currentActiveSlotsCount / 6) &&
-                    targetCol >= 0 && targetCol < 6) {
-
-                    let buffValue = 0;
-                    if (buff.v !== undefined) {
-                        if (buff.v === "limitUnlock") { buffValue = 1; }
-                        else if (!isNaN(parseInt(buff.v))) { buffValue = parseInt(buff.v); }
-                    }
-                    else if (buff.value !== undefined && !isNaN(parseInt(buff.value))) {
-                        buffValue = parseInt(buff.value);
-                    }
-                    slotBuffs[targetIndex] += buffValue;
-                }
-            });
-        }
-    });
-    return slotBuffs;
-}
-
-function updateAllSlotsUI() {
-    const currentSlotsCount = calculateSlots();
-    const slotBuffs = calculateSlotBuffs();
-
-    for(let i = 0; i < currentSlotsCount; i++) {
-        const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
-        if (slotElement) {
-            if(currentGridItems[i]) {
-                renderItemInSlot(slotElement, currentGridItems[i]);
-            } else {
-                const additionalUpgrade = slotBuffs[i] || 0;
-                slotElement.innerHTML = `${additionalUpgrade > 0 ? `<div class="slot-buff-indicator">+${additionalUpgrade}</div>` : ''}`;
-            }
-        }
-    }
-    for(let i = currentSlotsCount; i < maxSlots; i++) {
-        const slotElement = document.querySelector(`.slot[data-index="${i}"]`);
-        if (slotElement) {
-            slotElement.classList.add('disabled');
-            slotElement.innerHTML = ``;
-        }
-    }
-}
-
-// 백트래킹 함수 (똑똑한 배치 알고리즘)
-function findSolution(itemIndex, currentGridState, allItemsToPlace, totalActiveSlots) {
-    if (itemIndex === allItemsToPlace.length) {
-        return true;
-    }
-
-    const currentItemInstance = allItemsToPlace[itemIndex];
-    const itemCondition = currentItemInstance.condition && Array.isArray(currentItemInstance.condition) && currentItemInstance.condition.length > 0 ? currentItemInstance.condition[0] : '';
-
-    for (let slotCandidateIndex = 0; slotCandidateIndex < totalActiveSlots; slotCandidateIndex++) {
-        if (currentGridState[slotCandidateIndex] === null &&
-            isSlotAvailable(slotCandidateIndex, itemCondition, currentGridState)) {
-
-            currentGridState[slotCandidateIndex] = currentItemInstance;
-
-            if (currentItemInstance.id.startsWith('slate_') && currentItemInstance.rotatable) {
-                const originalRotation = currentItemInstance.rotation;
-                for (let rot = 0; rot < 360; rot += 90) {
-                    currentItemInstance.rotation = rot;
-                    if (findSolution(itemIndex + 1, currentGridState, allItemsToPlace, totalActiveSlots)) {
-                        return true;
-                    }
-                }
-                currentItemInstance.rotation = originalRotation;
-            } else {
-                if (findSolution(itemIndex + 1, currentGridState, allItemsToPlace, totalActiveSlots)) {
-                    return true;
-                }
-            }
-            currentGridState[slotCandidateIndex] = null;
-        }
-    }
-    return false;
-}
-
-// getNumberOfAvailableSlots 함수 (autoArrange 함수 외부에 위치)
-function getNumberOfAvailableSlots(item, currentGrid, totalActiveSlots) {
-    let count = 0;
-    const itemCondition = item.condition && Array.isArray(item.condition) && item.condition.length > 0 ? item.condition[0] : '';
-
-    for (let i = 0; i < totalActiveSlots; i++) {
-        if (currentGrid[i] === null && isSlotAvailable(i, itemCondition, currentGrid)) {
-            count++;
-        }
-    }
-    return count;
-}
+// NOTE: isSlotAvailable, calculateSlotBuffs, findSolution, getNumberOfAvailableSlots
+//       함수들은 algorithms.js 파일에 정의되어 있습니다.
 
 function autoArrange() {
   const currentSlotsCount = calculateSlots();
   const allSlotsElements = [...document.querySelectorAll('.slot')];
 
-  // tempGridForArrangement 선언을 autoArrange 함수의 맨 위로 옮김
-  const tempGridForArrangement = new Array(maxSlots).fill(null);
+  const tempGridForArrangement = new Array(maxSlots).fill(null); // 임시 그리드 상태
 
   allSlotsElements.forEach(slot => {
-    slot.innerHTML = ``;
+    slot.innerHTML = ``; // 슬롯 내용 초기화
     slot.classList.remove('disabled');
   });
   
   for (let i = 0; i < maxSlots; i++) {
       if (i >= currentSlotsCount) {
-          allSlotsElements[i].classList.add('disabled');
+          allSlotsElements[i].classList.add('disabled'); // 비활성화된 슬롯 표시
       }
   }
 
   let allItemsToPlace = [...selectedArtifacts, ...selectedSlates];
 
+  // 아이템 정렬 (휴리스틱)
   allItemsToPlace.sort((a, b) => {
     const conditionA = a.condition && Array.isArray(a.condition) && a.condition.length > 0 ? a.condition[0] : '';
     const conditionB = b.condition && Array.isArray(b.condition) && b.condition.length > 0 ? b.condition[0] : '';
 
     const conditionPriority = {
-        "양쪽칸이 공백": 5,
+        "양쪽칸이 공백": 5, // 가장 제약이 강함
         "안쪽": 4,
         "최상단": 3,
         "최하단": 3,
         "가장자리": 2,
-        "": 1
+        "": 1 // 조건 없음
     };
 
     const priorityA = conditionPriority[conditionA] || 0;
     const priorityB = conditionPriority[conditionB] || 0;
 
     if (priorityA !== priorityB) {
-        return priorityB - priorityA;
+        return priorityB - priorityA; // 우선순위 높은 (숫자 큰) 조건 먼저
     }
 
     if (a.id.startsWith('aritifact_') && !b.id.startsWith('aritifact_')) {
-        return -1;
+        return -1; // 아티팩트 우선
     }
     if (!a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
-        return 1;
+        return 1; // 석판 다음
     }
 
     if (a.id.startsWith('aritifact_') && b.id.startsWith('aritifact_')) {
         const orderA = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === a.instanceId);
         const orderB = selectedArtifacts.findIndex(itemInstance => itemInstance.instanceId === b.instanceId);
-        return orderA - orderB;
+        return orderA - orderB; // 아티팩트 내에서는 클릭 순서
     }
 
-    const availableSlotsForA = getNumberOfAvailableSlots(a, tempGridForArrangement, currentSlotsCount);
-    const availableSlotsForB = getNumberOfAvailableSlots(b, tempGridForArrangement, currentSlotsCount);
+    // 석판인 경우, 회전 가능 여부와 buffcoords 복잡도에 따라 정렬 (여기서 calculateSlots 필요)
+    // 이 부분에서 getNumberOfAvailableSlots를 호출할 때 calculateSlots를 전달해야 합니다.
+    const availableSlotsForA = getNumberOfAvailableSlots(a, tempGridForArrangement, currentSlotsCount, isSlotAvailable, calculateSlots);
+    const availableSlotsForB = getNumberOfAvailableSlots(b, tempGridForArrangement, currentSlotsCount, isSlotAvailable, calculateSlots);
     
     if (availableSlotsForA !== availableSlotsForB) {
-        return availableSlotsForA - availableSlotsForB;
+        return availableSlotsForA - availableSlotsForB; // 배치 가능한 슬롯 적은 것 우선
     }
     
-    return 0;
+    return 0; // 모든 기준이 같으면 순서 변경 없음
   });
 
-  if (findSolution(0, tempGridForArrangement, allItemsToPlace, currentSlotsCount)) {
+  // 백트래킹 알고리즘 실행
+  // findSolution, isSlotAvailable, calculateSlots는 algorithms.js에서 가져옴
+  if (findSolution(0, tempGridForArrangement, allItemsToPlace, currentSlotsCount, isSlotAvailable, calculateSlots)) {
       console.log("모든 아이템 배치 성공!");
-      currentGridItems = [...tempGridForArrangement];
+      currentGridItems = [...tempGridForArrangement]; // 최종 배치 결과 반영
 
-      // 이 부분 (selectedArtifacts.forEach 루프)을 제거합니다.
-      /*
-      selectedArtifacts.forEach(itemInstance => {
-          const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
-          if (itemInGrid) {
-              itemInGrid.level = itemInGrid.maxUpgrade;
-              itemInstance.level = itemInstance.maxUpgrade;
-          }
-      });
-      */
+      // 아티팩트 레벨 강제 설정 로직 제거됨
   } else {
       console.log("모든 아이템을 배치할 수 없습니다.");
       alert("모든 아이템을 그리드에 배치할 수 없습니다. 슬롯 수를 늘리거나 조건을 재조정해보세요.");
   }
 
-  updateAllSlotsUI();
+  updateAllSlotsUI(); // 최종 UI 업데이트
 }
 
 /**
