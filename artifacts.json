@@ -1798,35 +1798,5 @@
     "tags": "신비",
     "upgrade": 0,
     "maxUpgrade": 5
-  },
-  {
-    "id": "aritifact_181",
-    "name": "석궁 화살통",
-    "rarity": "UnCommon",
-    "condition": [],
-    "icon": "181.png",
-    "tags": [],
-    "upgrade": 0,
-    "maxUpgrade": 3
-  },
-  {
-    "id": "aritifact_182",
-    "name": "재장전용 나무 상자",
-    "rarity": "Rare",
-    "condition": [],
-    "icon": "182.png",
-    "tags": [],
-    "upgrade": 0,
-    "maxUpgrade": 4
-  },
-  {
-    "id": "aritifact_183",
-    "name": "청동거울 파편",
-    "rarity": "Rare",
-    "condition": [],
-    "icon": "183.png",
-    "tags": [],
-    "upgrade": 0,
-    "maxUpgrade": 3
   }
 ]
