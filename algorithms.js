@@ -60,7 +60,7 @@ function calculateSlotBuffs(currentGridItemsState, maxSlotsConst, calculateSlots
                 const targetCol = baseCol + transformedX;
                 const targetIndex = targetRow * 6 + targetCol;
 
-                const currentActiveSlotsCount = calculateSlotsFunc(); // calculateSlotsFunc 사용
+                const currentActiveSlotsCount = calculateSlotsFunc();
                 if (targetIndex >= 0 && targetIndex < currentActiveSlotsCount &&
                     targetRow >= 0 && targetRow < Math.ceil(currentActiveSlotsCount / 6) &&
                     targetCol >= 0 && targetCol < 6) {
