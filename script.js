@@ -606,4 +606,134 @@ function autoArrange() {
 
 /**
  * 석판을 90도 회전시키고, 해당 슬롯 및 주변 슬롯의 UI를 업데이트합니다.
- * @param {object} itemInstance - 회전할 석판 아이템 인스턴스
+ * @param {object} itemInstance - 회전할 석판 아이템 인스턴스 객체 (instanceId 포함).
+ * @param {number} slotIndex - 석판이 위치한 슬롯의 인덱스.
+ */
+function handleRotation(itemInstance, slotIndex) {
+    if (!itemInstance.rotatable) return;
+
+    itemInstance.rotation = (itemInstance.rotation || 0) + 90;
+    if (itemInstance.rotation >= 360) {
+        itemInstance.rotation = 0;
+    }
+
+    const itemInGrid = currentGridItems.find(gridItem => gridItem && gridItem.instanceId === itemInstance.instanceId);
+    if (itemInGrid) {
+        itemInGrid.rotation = itemInstance.rotation;
+    }
+    const itemInSelectedList = selectedSlates.find(sItem => sItem.instanceId === itemInstance.instanceId);
+    if (itemInSelectedList) {
+        itemInSelectedList.rotation = itemInstance.rotation;
+    }
+
+    updateAllSlotsUI();
+}
+
+
+// ==========================
+// 이벤트 리스너 및 초기화
+// ==========================
+
+tabArtifacts.addEventListener('click', () => {
+  tabArtifacts.classList.add('active');
+  tabSlates.classList.remove('active');
+  currentActiveTab = 'artifacts';
+  itemSearchInput.value = '';
+  activeTags.clear();
+  generateTagFilters();
+  applyFilterAndRenderList();
+});
+
+tabSlates.addEventListener('click', () => {
+  tabSlates.classList.add('active');
+  tabArtifacts.classList.remove('active');
+  currentActiveTab = 'slates';
+  itemSearchInput.value = '';
+  activeTags.clear();
+  generateTagFilters();
+  applyFilterAndRenderList();
+});
+
+checkboxes.forEach(chk => {
+  chk.addEventListener('change', () => {
+    renderSlots(calculateSlots());
+    updateAllSlotsUI();
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const autoArrangeBtn = document.getElementById('auto-arrange-btn');
+    if (autoArrangeBtn) {
+        autoArrangeBtn.addEventListener('click', autoArrange);
+    } else {
+        console.error("Error: autoArrangeBtn element not found in HTML. Check its ID.");
+    }
+});
+
+
+itemSearchInput.addEventListener('input', applyFilterAndRenderList);
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'r' || e.key === 'R') {
+        if (hoveredSlotIndex !== -1) {
+            const itemInSlot = currentGridItems[hoveredSlotIndex];
+            if (itemInSlot && itemInSlot.id.startsWith('slate_') && itemInSlot.rotatable) {
+                e.preventDefault();
+                handleRotation(itemInSlot, hoveredSlotIndex);
+            }
+        }
+    }
+});
+
+
+async function loadData() {
+  const res1 = await fetch('artifacts.json');
+  artifacts = await res1.json();
+  const res2 = await fetch('slates.json');
+  slates = await res2.json();
+
+  artifacts.forEach(item => {
+    if (typeof item.tags === 'string' && item.tags.includes(',')) {
+      item.tags = item.tags.split(',').map(tag => tag.trim());
+    } else if (typeof item.tags === 'string' && item.tags !== '') {
+      item.tags = [item.tags];
+    } else {
+      item.tags = [];
+    }
+
+    if (item.upgrade === undefined) {
+        item.upgrade = 0;
+    }
+    if (item.maxUpgrade === undefined) {
+        item.maxUpgrade = 0;
+    }
+    if (typeof item.condition === 'string' && item.condition !== '') {
+        item.condition = [item.condition];
+    } else if (!Array.isArray(item.condition)) {
+        item.condition = [];
+    }
+
+    item.tags.forEach(tag => allTags.add(tag));
+  });
+
+  slates.forEach(item => {
+    item.tags = [];
+    item.upgrade = 0;
+    item.maxUpgrade = 0;
+    if (typeof item.condition === 'string' && item.condition !== '') {
+        item.condition = [item.condition];
+    } else if (!Array.isArray(item.condition)) {
+        item.condition = [];
+    }
+    if (item.rotatable === undefined) {
+        item.rotatable = false;
+    }
+  });
+
+
+  renderSlots(calculateSlots());
+  generateTagFilters();
+  applyFilterAndRenderList();
+}
+
+loadData();
