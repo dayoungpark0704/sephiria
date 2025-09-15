@@ -1,0 +1,118 @@
+/* 기본 스타일 초기화 및 배경색 설정 */
+body {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Pretendard', sans-serif; /* 가독성 좋은 폰트 */
+    margin: 0;
+    padding: 20px;
+}
+
+.app-container {
+    display: flex;
+    gap: 20px;
+}
+
+/* 왼쪽 인벤토리 패널 */
+.inventory-panel {
+    width: 400px;
+    background-color: #2a2a3e;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5열 그리드 */
+    gap: 10px;
+    margin-top: 20px;
+    border: 2px solid #4a4a5e;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.inventory-slot {
+    width: 60px;
+    height: 60px;
+    background-color: #1a1a2e;
+    border: 2px dashed #4a4a5e;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 오른쪽 아이템 선택 패널 */
+.item-panel {
+    flex-grow: 1; /* 남는 공간을 모두 차지 */
+    background-color: #2a2a3e;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.item-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 20px;
+    max-height: 80vh;
+    overflow-y: auto; /* 아이템이 많으면 스크롤 */
+}
+
+.item-card {
+    background-color: #1a1a2e;
+    border: 2px solid #4a4a5e;
+    border-radius: 5px;
+    padding: 5px;
+    text-align: center;
+    cursor: grab; /* 드래그 가능함을 암시 */
+}
+
+.item-card img {
+    width: 50px;
+    height: 50px;
+}
+
+.item-card p {
+    font-size: 12px;
+    margin: 5px 0 0 0;
+}
+
+/* 중요도 설정 UX */
+.priority-overlay {
+    position: absolute;
+    top: 0; right: 0;
+    padding: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 0 0 0 5px;
+    display: none; /* 평소엔 숨김 */
+}
+
+.item-card:hover .priority-overlay {
+    display: block; /* 마우스 올리면 표시 */
+}
+body {
+    background-color: #2a2a2e; /* 어두운 배경 */
+    color: #e0e0e0;
+    font-family: 'Pretendard', sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+.app-container { display: flex; gap: 20px; }
+.inventory-panel, .item-panel { background-color: #2a2a3e; padding: 20px; border-radius: 10px; }
+.inventory-panel { width: 400px; }
+.item-panel { flex-grow: 1; }
+.inventory-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; border: 2px solid #4a4a5e; padding: 10px; border-radius: 5px; }
+.inventory-slot { width: 60px; height: 60px; background-color: #1a1a2e; border: 2px dashed #4a4a5e; border-radius: 5px; }
+.item-list { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; max-height: 80vh; overflow-y: auto; }
+.item-card { background-color: #1a1a2e; border: 2px solid #4a4a5e; border-radius: 5px; padding: 5px; text-align: center; cursor: grab; position: relative; }
+.item-card img { width: 50px; height: 50px; }
+.item-card p { font-size: 12px; margin: 5px 0 0 0; }
+.priority-overlay { position: absolute; top: 0; right: 0; padding: 2px; background-color: rgba(0, 0, 0, 0.7); border-radius: 0 0 0 5px; display: none; }
+.item-card:hover .priority-overlay { display: block; }
+.priority-btn { background: none; border: none; color: white; cursor: pointer; }
+
+/* ★★★ 희귀도별 색상 및 효과 클래스 ★★★ */
+.rarity-Common { color: #ffffff; text-shadow: 0 0 5px #ffffff; }
+.rarity-UnCommon { color: #87ceeb; text-shadow: 0 0 5px #87ceeb; } /* 고급 (파랑) */
+.rarity-Rare { color: #ffd700; text-shadow: 0 0 5px #ffd700; } /* 희귀 (노랑) */
+.rarity-Legendary { color: #ff69b4; text-shadow: 0 0 5px #ff69b4; } /* 전설 (분홍) */
