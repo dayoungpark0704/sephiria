@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.dataset.itemId = item.id;
 
             const img = document.createElement('img');
-            img.src = `images/${item.icon}`;
+            img.src = `image/${item.icon}`;
             
             const name = document.createElement('p');
             name.textContent = item.name;
@@ -116,4 +116,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 초기화
     createSlots(30);
     renderItems('slates'); // 기본으로 석판 목록 표시
+
 });
