@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Sephiria Optimizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="inventory-panel">
+            <div class="panel-header">
+                <h2>인벤토리</h2>
+                <p>아이템을 드래그하여 배치하고, 클릭하여 제거하세요.</p>
+            </div>
+            <div class="slot-controls">
+                <span>인벤토리 크기 설정</span>
+                <button id="slot-decrease">-</button>
+                <span id="slot-count">30</span>
+                <button id="slot-increase">+</button>
+            </div>
+            <div class="inventory-grid" id="inventory-grid">
+                </div>
+            <div class="selected-items-container">
+                <h4>선택된 아이템</h4>
+                <div id="selected-items-list"></div>
+            </div>
+            <div class="inventory-actions">
+                <button id="clear-button">🗑️ 초기화</button>
+                <button id="optimize-button">✨ 최적 배치</button>
+            </div>
+        </div>
+
+        <div class="item-panel">
+            <div class="item-filters">
+                <div class="tabs">
+                    <button class="tab-button active" data-type="slates">석판</button>
+                    <button class="tab-button" data-type="artifacts">아티팩트</button>
+                </div>
+                <div class="filter-controls">
+                    <select id="rarity-filter">
+                        <option value="all">등급 전체</option>
+                        <option value="Common">일반</option>
+                        <option value="UnCommon">고급</option>
+                        <option value="Rare">희귀</option>
+                        <option value="Legendary">전설</option>
+                    </select>
+                    <input type="text" id="name-search" placeholder="아이템 검색...">
+                </div>
+            </div>
+            <div class="item-list" id="item-list">
+                </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
