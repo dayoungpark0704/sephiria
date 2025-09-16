@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 아이템 이미지
             const img = document.createElement('img');
-            img.src = `images/${item.icon}`;
+            img.src = `image/${item.icon}`;
             img.alt = item.name;
 
             // 아이템 이름 (희귀도 색상 적용)
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const dbItem = artifactDB.find(d => d.id === item.id) || slateDB.find(d => d.id === item.id);
                 const elem = document.createElement('div');
                 elem.className = 'selected-item';
-                elem.innerHTML = `<img src="images/${dbItem.icon}" alt="${dbItem.name}"> <span>${dbItem.name}</span>`;
+                elem.innerHTML = `<img src="image/${dbItem.icon}" alt="${dbItem.name}"> <span>${dbItem.name}</span>`;
                 selectedItemsList.appendChild(elem);
             }
         });
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // UI 업데이트
             const dbItem = (draggedItem.type === 'artifacts' ? artifactDB : slateDB).find(i => i.id === itemId);
-            slot.innerHTML = `<img src="images/${dbItem.icon}" alt="${dbItem.name}">`;
+            slot.innerHTML = `<img src="image/${dbItem.icon}" alt="${dbItem.name}">`;
             if (draggedItem.type === 'artifacts' && inventoryState[slotId].upgrade > 0) {
                 slot.innerHTML += `<div class="enchant-display">+${inventoryState[slotId].upgrade}</div>`;
             }
@@ -274,4 +274,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 초기 실행 ---
     updateSlots(30);
     renderItems();
+
 });
