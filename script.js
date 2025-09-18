@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.dataset.itemId = item.id;
 
             card.innerHTML = `
-                <img src="images/${item.icon}" alt="${item.name}">
+                <img src="image/${item.icon}" alt="${item.name}">
                 <p class="rarity-${item.rarity}">${item.name}</p>
                 <div class="stack-display">${count}</div>
                 <div class="item-controls-overlay">
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (oldState[i]) {
                 inventoryState[i] = oldState[i];
                 const dbItem = artifactDB.find(d => d.id === oldState[i].id) || slateDB.find(d => d.id === oldState[i].id);
-                slot.innerHTML = `<img src="images/${dbItem.icon}" alt="${dbItem.name}">`;
+                slot.innerHTML = `<img src="image/${dbItem.icon}" alt="${dbItem.name}">`;
                 if (oldState[i].upgrade > 0) {
                      slot.innerHTML += `<div class="enchant-display">+${oldState[i].upgrade}</div>`;
                 }
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const dbItem = artifactDB.find(d => d.id === item.id) || slateDB.find(d => d.id === item.id);
                 const elem = document.createElement('div');
                 elem.className = 'selected-item';
-                elem.innerHTML = `<img src="images/${dbItem.icon}" alt="${dbItem.name}"> <span class="rarity-${dbItem.rarity}">${dbItem.name} ${item.upgrade > 0 ? `+${item.upgrade}`:''}</span>`;
+                elem.innerHTML = `<img src="image/${dbItem.icon}" alt="${dbItem.name}"> <span class="rarity-${dbItem.rarity}">${dbItem.name} ${item.upgrade > 0 ? `+${item.upgrade}`:''}</span>`;
                 selectedItemsList.appendChild(elem);
             }
         });
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             inventoryState[slotId] = { id: itemId, ...(userItemSettings[itemId] || { priority: 1.0, upgrade: 0 }) };
             
             const dbItem = (draggedItem.type === 'artifacts' ? artifactDB : slateDB).find(i => i.id === itemId);
-            slot.innerHTML = `<img src="images/${dbItem.icon}" alt="${dbItem.name}">`;
+            slot.innerHTML = `<img src="image/${dbItem.icon}" alt="${dbItem.name}">`;
             if (draggedItem.type === 'artifacts' && inventoryState[slotId].upgrade > 0) {
                  slot.innerHTML += `<div class="enchant-display">+${inventoryState[slotId].upgrade}</div>`;
             }
@@ -245,4 +245,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 초기 실행 ---
     updateSlots(30);
     renderItems();
+
 });
